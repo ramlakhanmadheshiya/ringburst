@@ -49,13 +49,18 @@ func build() -> void:
 	_demo.demo = true
 	_demo.clip_contents = true
 	_demo.zoom = 1.9
-	var w: int = posmod(Profile.unlocked_world_count() - 1, Worlds.count())
-	_demo.set_world(w)
+	_demo.set_world(0)
 	frame.add_child(_demo)
 	body.add_child(frame)
 	var demo_spec: Dictionary = Worlds.endless_spec(4242)
 	demo_spec["difficulty"] = 1.2
-	_demo.start(RunSim.new(demo_spec, RunStats.make({"power": 2})))
+	var demo_sim: RunSim = RunSim.new(demo_spec, RunStats.make({"power": 2}))
+	# Start in the middle of the action.
+	var bot: Bot = Bot.new("perfect", 11)
+	while demo_sim.t < 9.0:
+		bot.act(demo_sim)
+		demo_sim.step()
+	_demo.start(demo_sim)
 	frame.gui_input.connect(func(e: InputEvent) -> void:
 		if e is InputEventMouseButton and e.pressed and (e as InputEventMouseButton).button_index == MOUSE_BUTTON_LEFT:
 			_play()

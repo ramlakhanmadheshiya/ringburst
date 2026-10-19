@@ -622,6 +622,8 @@ func _draw_top(ci: CanvasItem) -> void:
 		return
 	_apply_view(ci)
 	var f: Font = UIKit.font(800)
+	# Keep floating text clear of the HUD at the top.
+	var min_y: float = (inset_top + 46.0 - _origin.y) / maxf(0.01, _scale)
 	for tx: Dictionary in _texts:
 		var k: float = float(tx["life"]) / float(tx["max"])
 		var fs: int = int(tx["s"])
@@ -629,6 +631,8 @@ func _draw_top(ci: CanvasItem) -> void:
 		var text: String = tx["text"]
 		var w: float = f.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, int(fs * pop)).x
 		var pos: Vector2 = (tx["p"] as Vector2) + Vector2(-w / 2.0, -k * 40.0)
+		pos.y = maxf(pos.y, min_y)
+		pos.x = clampf(pos.x, -ARENA.x * 0.5 + 10.0, ARENA.x * 0.5 - 10.0 - w)
 		var col: Color = Color(tx["c"], 1.0 - maxf(0.0, k - 0.6) / 0.4)
 		ci.draw_string_outline(f, pos, text, HORIZONTAL_ALIGNMENT_LEFT, -1, int(fs * pop), 8, Color(0, 0, 0, 0.45 * col.a))
 		ci.draw_string(f, pos, text, HORIZONTAL_ALIGNMENT_LEFT, -1, int(fs * pop), col)

@@ -85,7 +85,7 @@ func rate() -> float:
 
 ## Health and speed scaling for shapes spawned now.
 func hp_mult() -> float:
-	var m: float = 1.0 + 0.42 * difficulty()
+	var m: float = 1.0 + 0.38 * difficulty()
 	match str(spec.get("modifier", "")):
 		"swarm":
 			m *= 0.7
@@ -95,7 +95,7 @@ func hp_mult() -> float:
 
 
 func speed_mult() -> float:
-	var m: float = 1.0 + 0.09 * minf(difficulty(), 10.0)
+	var m: float = 1.0 + 0.11 * minf(difficulty(), 10.0)
 	match str(spec.get("modifier", "")):
 		"giants":
 			m *= 0.8

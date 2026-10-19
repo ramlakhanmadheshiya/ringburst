@@ -52,6 +52,14 @@ func _wait(s: float) -> void:
 	await get_tree().create_timer(s).timeout
 
 
+## Waits until `cond` is true (polling every frame), up to `limit` seconds, so
+## slow machines (CI) don't fail on fixed delays.
+func _until(cond: Callable, limit: float = 10.0) -> void:
+	var t0: int = Time.get_ticks_msec()
+	while not cond.call() and Time.get_ticks_msec() - t0 < int(limit * 1000.0):
+		await get_tree().process_frame
+
+
 func _find(root: Node, n: String) -> Node:
 	return root.find_child(n, true, false) if root != null else null
 
@@ -141,7 +149,11 @@ func _tutorial() -> void:
 	var cap: Label = _find(tut, "TutorialText") as Label
 	t.ok(cap.text.begins_with("Hold anywhere"), "the tutorial says to hold")
 	# Wait for the shape to arrive, then hold to it and let go.
-	await _wait(5.5)
+	await _until(func() -> bool:
+		for e: RunSim.Enemy in play.sim.enemies:
+			if e.alive and e.pos.length() <= e.hold_r + 0.5:
+				return true
+		return false, 20.0)
 	play.arena.press()
 	await _wait(0.2)
 	t.eq(tut.step, Tutorial.Step.AIM, "holding moves the tutorial on")
@@ -150,7 +162,7 @@ func _tutorial() -> void:
 		await get_tree().process_frame
 		guard += 1
 	play.arena.lift()
-	await _wait(2.4)
+	await _until(func() -> bool: return tut.step == Tutorial.Step.GROUP, 6.0)
 	t.eq(tut.step, Tutorial.Step.GROUP, "bursting the shape moves on to a group")
 	for i: int in 12:
 		if play.tutorial == null:
@@ -214,7 +226,8 @@ func _first_run() -> void:
 	t.eq(sim.state, RunSim.State.WON, "the bot wins the first stage")
 	var coins0: int = Profile.coins()
 	play.arena.paused = false
-	await _wait(2.0)
+	await _until(func() -> bool: return app.top_overlay() is ResultCard, 8.0)
+	await _wait(0.4)
 	var result: Overlay = app.top_overlay()
 	t.ok(result is ResultCard, "the result card appears")
 	t.eq((_find(result, "ResultTitle") as Label).text, "Stage clear!", "the win title")
@@ -247,7 +260,7 @@ func _lost_run() -> void:
 	sim.invuln_t = 0.0
 	sim.lives = 1
 	sim.spawn_enemy(EnemyTypes.DRIFTER, Vector2(RunSim.CORE_R + 8.0, 0), 1.0, 1.0)
-	await _wait(1.5)
+	await _until(func() -> bool: return app.top_overlay() is ReviveCard, 8.0)
 	t.eq(sim.state, RunSim.State.LOST, "a shape on the last shield ends the run")
 	var card: Overlay = app.top_overlay()
 	t.ok(card is ReviveCard, "a revive is offered")
@@ -258,7 +271,8 @@ func _lost_run() -> void:
 	sim.invuln_t = 0.0
 	sim.lives = 1
 	sim.spawn_enemy(EnemyTypes.DRIFTER, Vector2(RunSim.CORE_R + 8.0, 0), 1.0, 1.0)
-	await _wait(1.8)
+	await _until(func() -> bool: return app.top_overlay() is ResultCard, 8.0)
+	await _wait(0.3)
 	card = app.top_overlay()
 	t.ok(card is ResultCard, "a second loss goes straight to the result")
 	t.eq((_find(card, "ResultTitle") as Label).text, "Run over", "the loss title")
@@ -380,11 +394,13 @@ func _daily() -> void:
 			sim.choose(0)
 		sim.step()
 	play.arena.paused = false
-	await _wait(2.2)
+	await _until(func() -> bool: return app.top_overlay() is ResultCard or app.top_overlay() is ReviveCard, 8.0)
+	await _wait(0.3)
 	var card: Overlay = app.top_overlay()
 	if card is ReviveCard:
 		_press(card, "EndRun")
-		await _wait(1.0)
+		await _until(func() -> bool: return app.top_overlay() is ResultCard, 8.0)
+		await _wait(0.3)
 		card = app.top_overlay()
 	t.ok(card is ResultCard, "the daily result appears")
 	t.ok(Profile.daily_done(Profile.today_key()), "today's daily is done")
@@ -408,11 +424,11 @@ func _endless() -> void:
 	sim.invuln_t = 0.0
 	sim.lives = 1
 	sim.spawn_enemy(EnemyTypes.DRIFTER, Vector2(RunSim.CORE_R + 8.0, 0), 1.0, 1.0)
-	await _wait(1.6)
+	await _until(func() -> bool: return app.top_overlay() is ReviveCard, 8.0)
 	var card: Overlay = app.top_overlay()
 	t.ok(card is ReviveCard, "Endless offers a revive too")
 	_press(card, "EndRun")
-	await _wait(1.0)
+	await _until(func() -> bool: return app.top_overlay() is ResultCard, 8.0)
 	t.ok(app.top_overlay() is ResultCard, "then the result")
 	t.ok(Profile.endless_best() > 0 or sim.score == 0, "the Endless best is recorded")
 	app.close_overlays()

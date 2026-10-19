@@ -60,8 +60,8 @@ func _ready() -> void:
 	var sub: String = str(info.get("date", "")) if mode == "daily" else (str(info.get("time_text", "")) if mode == "endless" else str(info.get("where", "")))
 	_label(sub, 28, muted, 600, Vector2(460, 116), Vector2(548, 44), HORIZONTAL_ALIGNMENT_RIGHT)
 	# Score block under the burst.
-	_label(_thousands(int(info.get("score", 0))), 120, ink, 800, Vector2(0, 760), Vector2(1080, 140))
-	_label("POINTS", 28, muted, 700, Vector2(0, 890), Vector2(1080, 40))
+	_label(_thousands(int(info.get("score", 0))), 118, ink, 800, Vector2(0, 738), Vector2(1080, 150))
+	_label("POINTS", 26, muted, 700, Vector2(0, 892), Vector2(1080, 40))
 	var stats: String = "%d combo  ·  %d perfects  ·  %d shapes" % [int(info.get("combo", 0)), int(info.get("perfects", 0)), int(info.get("kills", 0))]
 	_label(stats, 32, ink, 600, Vector2(0, 940), Vector2(1080, 50))
 	if mode == "stage":
@@ -136,11 +136,13 @@ func _draw() -> void:
 	draw_arc(c, 220.0, 0.0, TAU, 160, acc.lerp(Color.WHITE, 0.5), 12.0, true)
 	for i: int in 9:
 		var ang: float = TAU * float(i) / 9.0 + rng.range_f(-0.2, 0.2)
-		var d: float = rng.range_f(200.0, 300.0)
+		# Every other shape is caught on the edge; the rest still close in.
+		var on_edge: bool = i % 2 == 0
+		var d: float = 220.0 if on_edge else rng.range_f(275.0, 320.0)
 		var p: Vector2 = c + Vector2.from_angle(ang) * d
 		var col: Color = en[i % en.size()]
 		var sides: int = [3, 4, 6, 0, 5][i % 5]
-		if absf(d - 220.0) < 30.0:
+		if on_edge:
 			for k: int in 6:
 				var a2: float = rng.next_float() * TAU
 				var q: Vector2 = p + Vector2.from_angle(a2) * rng.range_f(14.0, 44.0)

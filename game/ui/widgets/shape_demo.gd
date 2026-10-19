@@ -18,6 +18,7 @@ func _init(p: String = "hold", t: int = 0) -> void:
 	type = t
 	custom_minimum_size = Vector2(0, 300)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	clip_contents = true
 
 
 func _process(delta: float) -> void:
@@ -60,7 +61,8 @@ func _draw() -> void:
 					else:
 						d = lerpf(190.0, 110.0, clampf((t - 1.2) / 0.25, 0.0, 1.0))
 				EnemyTypes.ORBITER:
-					ang = -t * 1.2
+					ang = -t * 1.2 + 0.6
+					d = lerpf(150.0, 105.0, clampf(t / hit_t, 0.0, 1.0))
 				EnemyTypes.SPAWNER:
 					d = lerpf(start_d, 170.0, clampf(t / 0.8, 0.0, 1.0))
 					hit_t = 2.2
@@ -99,7 +101,7 @@ func _draw() -> void:
 			var p2: Vector2 = pos + Vector2.from_angle(a2) * (10.0 + 70.0 * bk) * k
 			draw_circle(p2, 4.0 * k * (1.0 - bk), Color(col, 1.0 - bk))
 		var f: Font = UIKit.font(800)
-		var txt: String = "PERFECT"
+		var txt: String = "PERFECT" if page != "hold" else "BURST"
 		var fs: int = int(26 * k)
 		var w: float = f.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
 		draw_string(f, pos + Vector2(-w / 2.0, -40.0 * k - bk * 20.0), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(Style.INK, 1.0 - bk))

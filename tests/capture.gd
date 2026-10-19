@@ -152,12 +152,13 @@ func _review_set() -> void:
 
 ## The Play Store set (1080 x 1920 when the window is 1080 x 1920 or scaled).
 func _store_set() -> void:
+	await _wait(1.0)
 	await _shot("01_home")
-	await _run_scene(0, 2, 16.0)
+	await _run_scene(0, 3, 40.0)
 	await _shot("02_shore")
-	await _run_scene(3, 3, 26.0)
+	await _run_scene(3, 3, 50.0, "perfect")
 	await _shot("03_fracture")
-	await _run_scene(5, 5, 104.0)
+	await _run_scene(5, 5, 104.0, "perfect")
 	await _shot("04_boss")
 	await _run_scene(4, 2, 30.0)
 	await _choice()
@@ -175,8 +176,8 @@ func _store_set() -> void:
 
 
 ## Opens a stage and lets the bot play it for `seconds` of game time, then
-## freezes it with the ring charging.
-func _run_scene(w: int, k: int, seconds: float) -> void:
+## freezes it with the ring charging (or just after a PERFECT burst).
+func _run_scene(w: int, k: int, seconds: float, moment: String = "charge") -> void:
 	app.close_overlays()
 	app.go("play", {"world": w, "stage": k})
 	await _wait(0.8)
@@ -199,6 +200,25 @@ func _run_scene(w: int, k: int, seconds: float) -> void:
 			sim.choose(bot.pick(sim))
 		await get_tree().process_frame
 		live += get_process_delta_time()
+	if moment == "perfect":
+		var got: Array = [false]
+		var cb: Callable = func(ev: Dictionary) -> void:
+			if ev["t"] == "perfect" and int(ev["combo"]) >= 3:
+				got[0] = true
+		play.arena.sim_event.connect(cb)
+		var guard: int = 0
+		while not got[0] and guard < 900 and not sim.is_over():
+			bot.act(sim)
+			if sim.state == RunSim.State.CHOOSING:
+				sim.choose(bot.pick(sim))
+			await get_tree().process_frame
+			guard += 1
+		play.arena.sim_event.disconnect(cb)
+		await _wait(0.22)
+		play.arena.paused = true
+		await _wait(0.1)
+		app.close_overlays()
+		return
 	# Hold the ring partway grown.
 	sim.cancel_charge()
 	sim.input_down()
