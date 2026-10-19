@@ -16,30 +16,36 @@ func build() -> void:
 	body.add_child(UIKit.slider_row("Sound", "volume-2", float(Profile.setting("sound_volume", 0.8)), func(v: float) -> void: Profile.set_setting("sound_volume", v)))
 	body.add_child(UIKit.toggle_row("Vibration", "vibrate", bool(Profile.setting("haptics", true)), func(on: bool) -> void: Profile.set_setting("haptics", on)))
 	body.add_child(UIKit.toggle_row("Screen shake", "zap", bool(Profile.setting("shake", true)), func(on: bool) -> void: Profile.set_setting("shake", on)))
-	body.add_child(UIKit.gap(4))
-	# Appearance: Auto (follow the phone), Dark or Light, for the Original colours.
-	var ap_row: HBoxContainer = UIKit.hbox(18, BoxContainer.ALIGNMENT_BEGIN)
-	ap_row.add_child(UIKit.icon_rect("palette", 40, Style.MUTED))
-	var ap_label: Label = UIKit.label("Appearance", Style.SIZE_BODY, Style.INK, 500, HORIZONTAL_ALIGNMENT_LEFT)
-	ap_label.custom_minimum_size.x = 170
-	ap_row.add_child(ap_label)
-	var modes: Array = ["auto", "dark", "light"]
-	var slider: SegmentedSlider = SegmentedSlider.new(PackedStringArray(["Auto", "Dark", "Light"]), modes.find(Look.appearance()))
-	slider.name = "Appearance"
-	slider.changed.connect(func(i: int) -> void:
-		Profile.set_setting("appearance", modes[i])
-		app.repaint_and_reopen()
-	)
-	ap_row.add_child(slider)
-	body.add_child(ap_row)
-	if Look.theme_id() != "worlds":
-		body.add_child(UIKit.para("Your %s theme sets its own colours. Appearance applies to the Original colours." % Look.theme_name(Look.theme_id()), Style.SIZE_CAPTION))
-	body.add_child(UIKit.gap(6))
-	var looks: HBoxContainer = UIKit.hbox(14)
-	looks.add_child(_look_button("Colours", Look.theme_name(Look.theme_id()), "palette", "themes"))
-	looks.add_child(_look_button("Rings", Look.style_name(Look.style_id()), "circle-dot", "styles"))
-	body.add_child(looks)
-	body.add_child(UIKit.gap(6))
+	var in_run: bool = app.screen != null and app.screen.in_game()
+	if in_run:
+		# Repainting reloads the screen, which would end the run.
+		body.add_child(UIKit.para("Appearance, colours and ring styles can be changed from the home screen.", Style.SIZE_CAPTION))
+	else:
+		body.add_child(UIKit.gap(4))
+		# Appearance: Auto (follow the phone), Dark or Light, for the Original colours.
+		var ap_row: HBoxContainer = UIKit.hbox(18, BoxContainer.ALIGNMENT_BEGIN)
+		ap_row.add_child(UIKit.icon_rect("palette", 40, Style.MUTED))
+		var ap_label: Label = UIKit.label("Appearance", Style.SIZE_BODY, Style.INK, 500, HORIZONTAL_ALIGNMENT_LEFT)
+		ap_label.custom_minimum_size.x = 170
+		ap_row.add_child(ap_label)
+		var modes: Array = ["auto", "dark", "light"]
+		var slider: SegmentedSlider = SegmentedSlider.new(PackedStringArray(["Auto", "Dark", "Light"]), modes.find(Look.appearance()))
+		slider.name = "Appearance"
+		slider.changed.connect(func(i: int) -> void:
+			Profile.set_setting("appearance", modes[i])
+			app.repaint_and_reopen()
+		)
+		ap_row.add_child(slider)
+		body.add_child(ap_row)
+		if Look.theme_id() != "worlds":
+			body.add_child(UIKit.para("Your %s theme sets its own colours. Appearance applies to the Original colours." % Look.theme_name(Look.theme_id()), Style.SIZE_CAPTION))
+		body.add_child(UIKit.gap(6))
+		var looks: HBoxContainer = UIKit.hbox(14)
+		looks.add_child(_look_button("Colours", Look.theme_name(Look.theme_id()), "palette", "themes"))
+		looks.add_child(_look_button("Rings", Look.style_name(Look.style_id()), "circle-dot", "styles"))
+		body.add_child(looks)
+		body.add_child(UIKit.gap(6))
+
 	var grid: GridContainer = GridContainer.new()
 	grid.columns = 2
 	grid.add_theme_constant_override("h_separation", 14)
@@ -59,6 +65,9 @@ func build() -> void:
 	var provider: Node = AdManager.provider
 	if provider != null and provider.has_method("privacy_options_required") and provider.privacy_options_required():
 		items.append(["Ad privacy", "Privacy", "shield", func() -> void: provider.show_privacy_options()])
+	if in_run:
+		# Leaving for the shop would end the run.
+		items = items.filter(func(it: Array) -> bool: return str(it[1]) != "ShopButton")
 	for item: Array in items:
 		var b: Button = UIKit.button(str(item[0]), "soft", Style.AMBER, 76, 23, str(item[2]))
 		b.name = str(item[1])

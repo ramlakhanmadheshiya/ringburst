@@ -43,15 +43,16 @@ func build() -> void:
 	)
 	nav.add_child(_next)
 	body.add_child(nav)
-	var replay: Button = UIKit.button("Replay the tutorial", "ghost", Style.AMBER, 66, 21, "pointer")
-	replay.name = "ReplayTutorial"
-	replay.pressed.connect(func() -> void:
-		Save.data["seen"].erase("tutorial")
-		Save.mark_dirty()
-		app.close_overlays()
-		app.go("play", {"world": 0, "stage": 0})
-	)
-	body.add_child(replay)
+	if app.screen == null or not app.screen.in_game():
+		var replay: Button = UIKit.button("Replay the tutorial", "ghost", Style.AMBER, 66, 21, "pointer")
+		replay.name = "ReplayTutorial"
+		replay.pressed.connect(func() -> void:
+			Save.data["seen"].erase("tutorial")
+			Save.mark_dirty()
+			app.close_overlays()
+			app.go("play", {"world": 0, "stage": 0})
+		)
+		body.add_child(replay)
 	_show(0)
 
 
