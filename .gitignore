@@ -1,0 +1,11 @@
+.godot/
+.DS_Store
+*.tmp
+build/
+site/
+.venv/
+/android/
+__pycache__/
+plugins_src/ringburst_share/build/
+plugins_src/ringburst_share/.gradle/
+addons/ringburst_share/bin/
