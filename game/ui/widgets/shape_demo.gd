@@ -2,8 +2,9 @@ class_name ShapeDemo
 extends Control
 ## A small looping illustration for How to play and the "new shape" card:
 ## the core, a growing ring, and a shape doing its thing until the ring
-## bursts it. `page` picks the idea: "hold", "perfect", "core", "gems",
-## "upgrades", or "shape" with `type` set to an EnemyTypes id.
+## bursts it. `page` picks the idea: "hold", "perfect", "core", "task" (the
+## burst fills a task bar and lights the stars), or "shape" with `type` set to
+## an EnemyTypes id.
 
 var page: String = "hold"
 var type: int = 0
@@ -109,15 +110,17 @@ func _draw() -> void:
 			for i: int in 3:
 				var a3: float = TAU * float(i) / 3.0
 				Shapes.neon(self, pos + Vector2.from_angle(a3) * (20.0 + 40.0 * bk) * k, 10.0 * k, 3, a3, col, light)
-	if page == "gems" and t >= hit_t:
-		var gk: float = clampf((t - hit_t - 0.2) / 0.6, 0.0, 1.0)
-		var gp: Vector2 = pos.lerp(c, gk * gk)
-		if gk < 1.0:
-			var gs: float = 9.0 * k
-			draw_colored_polygon(PackedVector2Array([gp + Vector2(0, -gs), gp + Vector2(gs * 0.7, 0), gp + Vector2(0, gs), gp + Vector2(-gs * 0.7, 0)]), Color("7CFFCB") if not light else Color("168A68"))
-		var bar: Rect2 = Rect2(size.x * 0.62, size.y * 0.78, size.x * 0.3, 10.0 * k)
+	if page == "task":
+		# The task bar fills with the burst, then the stars light.
+		var gk: float = clampf((t - hit_t) / 0.4, 0.0, 1.0)
+		var bar: Rect2 = Rect2(size.x * 0.62, size.y * 0.7, size.x * 0.3, 10.0 * k)
 		draw_style_box(UIKit.box(Color(Style.INK, 0.12), 5), bar)
-		draw_style_box(UIKit.box(Color("7CFFCB") if not light else Color("168A68"), 5), Rect2(bar.position, Vector2(bar.size.x * (0.4 + 0.5 * gk), bar.size.y)))
+		draw_style_box(UIKit.box(accent, 5), Rect2(bar.position, Vector2(bar.size.x * (0.6 + 0.4 * gk), bar.size.y)))
+		for i: int in 3:
+			var on: bool = t >= hit_t + 0.4 + 0.15 * float(i)
+			var sp: Vector2 = Vector2(bar.position.x + bar.size.x * (0.2 + 0.3 * float(i)), size.y * 0.5)
+			var ss: float = 26.0 * k
+			draw_texture_rect(UIKit.art("star"), Rect2(sp - Vector2(ss, ss) / 2.0, Vector2(ss, ss)), false, Color.WHITE if on else Color(Style.INK, 0.16))
 	# The shape.
 	if alive:
 		var rot: float = t * 0.8

@@ -60,7 +60,7 @@ a small share plugin (saves the share picture to the gallery). No analytics, no 
 
 - Category: **Game** (arcade)
 - Violence, blood, fear, sexuality, nudity, crude humour, language, drugs, alcohol, tobacco: **No** to all (only abstract shapes that burst into light)
-- Gambling or simulated gambling: **No** (rewarded ads give a revive, double coins, free coins or a trial; nothing random)
+- Gambling or simulated gambling: **No** (rewarded ads give a revive or a one-hour trial of a cosmetic pack; nothing random)
 - Users can interact or exchange content in the app: **No** (sharing goes out through the phone's own share sheet; there is no in-app chat or user content)
 - Shares the user's location: **No**
 - Lets users buy digital goods: **Yes**
@@ -96,7 +96,7 @@ Everything is in `store/listing.md` (text, checked by `python3 store/check_listi
 |---|---|
 | App icon 512 × 512 | `store/icon_512.png` |
 | Feature graphic 1024 × 500 | `store/feature_graphic.png` |
-| Phone screenshots 1080 × 1920 | `store/screenshots/01_home.png` … `08_levels.png` |
+| Phone screenshots 1080 × 1920 | `store/screenshots/01_home.png` … `08_level_card.png` |
 
 Store settings: category **Games > Arcade**, tags from `listing.md`, email support@theramlakhan.com, website https://theramlakhan.com/ringburst/. No phone number needed.
 
@@ -104,12 +104,11 @@ Re-render the art any time: `godot --path . --disable-vsync --always-on-top --re
 
 ## In-app products (Monetize with Play > Products, after the first AAB is on a track)
 
-108 products, prices in rupees (Play converts the rest):
+104 products, prices in rupees (Play converts the rest):
 
 | Kind | IDs | Price |
 |---|---|---|
 | One-time packs | `complete_pack`, `supporter_pack`, `theme_pack`, `style_pack` | ₹449, ₹249, ₹149, ₹149 |
-| Coin bags (consumed in the app) | `coins_500`, `coins_1500`, `coins_4000`, `coins_10000` | ₹79, ₹199, ₹449, ₹899 |
 | Tips (consumed in the app) | `tip_10` … `tip_1000` in steps of 10 | the amount in the ID |
 
 Full list: `python3 store/play_products.py list` (also `store/products.csv`).
@@ -123,14 +122,14 @@ Then add your own Gmail under Settings > License testing so you can buy with tes
 
    Message to send testers:
 
-   > Hi! I've made a one-touch arcade game called Ringburst and need testers on Google Play for 14 days. Join with the Gmail you use on your Android phone: [opt-in link]. Install it, play a few stages whenever you like, and keep it installed for two weeks. Tell me anything confusing, too hard, or broken: support@theramlakhan.com. Thank you!
+   > Hi! I've made a one-touch arcade game called Ringburst and need testers on Google Play for 14 days. Join with the Gmail you use on your Android phone: [opt-in link]. Install it, play a few levels whenever you like, and keep it installed for two weeks. Tell me anything confusing, too hard, or broken: support@theramlakhan.com. Thank you!
 
 ## Apply for production (after the 14 days)
 
 Draft answers (edit with what really happened):
 
-- **About the test:** Testers were friends, family and fellow players recruited by message. They played on their own Android phones over 14 days and reported by email and chat. Feedback covered stage difficulty, the perfect window, sound levels and sharing; fixed in builds 1.0.x (list the real changes).
-- **About the app:** A one-touch, ad-light arcade roguelite for teens and adults: hold to grow a ring, release to burst it. 48 stages in 8 worlds with bosses, 30 upgrades, Endless and a daily run; every stage's difficulty is checked by automated test players. Expected installs in the first year: 1,000–10,000.
+- **About the test:** Testers were friends, family and fellow players recruited by message. They played on their own Android phones over 14 days and reported by email and chat. Feedback covered level difficulty, the perfect window, sound levels and sharing; fixed in builds 1.0.x (list the real changes).
+- **About the app:** A one-touch, ad-light arcade game for teens and adults: hold to grow a ring, release to burst it. 320 short levels in 8 worlds, each with one clear task, Giants and a boss in every world; every level's difficulty is checked by automated test players. Expected installs in the first year: 1,000–10,000.
 - **About readiness:** All tester issues are fixed, the app has run on several phones without crashes, purchases and ads are tested, and the privacy policy and Data safety form match the SDKs in the build.
 
 ## After launch

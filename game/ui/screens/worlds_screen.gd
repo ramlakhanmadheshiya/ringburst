@@ -3,7 +3,7 @@ extends Screen
 
 
 func build() -> void:
-	body.add_child(header("Worlds", "★ %d / %d" % [Profile.total_stars(), Worlds.total_stages() * 3]))
+	body.add_child(header("Worlds", "★ %d / %d" % [Profile.total_stars(), Worlds.total_levels() * 3]))
 	body.add_child(UIKit.gap(6))
 	var scroll: TouchScroll = TouchScroll.new()
 	scroll.name = "Scroll"
@@ -26,7 +26,7 @@ func build() -> void:
 		var idx: int = i
 		card.pressed.connect(func() -> void:
 			if Profile.world_unlocked(idx):
-				app.go("stages", {"world": idx})
+				app.go("levels", {"world": idx})
 			else:
 				Audio.play("error", 1.2, -8.0)
 				app.toast("Beat the boss of %s first" % Worlds.world(idx - 1)["name"], "lock", Style.AMBER)

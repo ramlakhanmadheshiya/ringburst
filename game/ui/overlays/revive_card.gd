@@ -1,7 +1,7 @@
 class_name ReviveCard
 extends Overlay
-## Shields down: revive once (a short video, or coins), or end the run.
-## Supporters revive without a video.
+## Shields down: revive once with a short video (a revived level is worth one
+## star), or stop. Supporters revive without a video.
 
 var play: Node
 var _status: Label
@@ -14,16 +14,19 @@ func _init() -> void:
 
 func build() -> void:
 	name = "Revive"
-	body.add_child(UIKit.art_rect("shield", 110))
-	body.add_child(UIKit.label("Shields down!", Style.SIZE_H1, Style.INK, 700))
-	body.add_child(UIKit.para("Revive once with two shields and a blast that clears the space around your core.", Style.SIZE_SMALL))
-	body.add_child(UIKit.label("%s points · %d combo" % [play._thousands(play.sim.score), play.sim.best_combo], Style.SIZE_SMALL, Style.MUTED, 600))
+	body.add_child(UIKit.art_rect("shield", 100))
+	body.add_child(UIKit.label("Shields down!", Style.SIZE_H1, Style.INK, 600))
+	body.add_child(UIKit.para("Carry on with two shields and a blast that clears the space around your core. A revived level earns one star.", Style.SIZE_SMALL))
+	var task: Label = UIKit.label("%s · %d%% done" % [play.task_text(), int(round(play.sim.goal_progress() * 100.0))], Style.SIZE_SMALL, Style.MUTED, 600)
+	task.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	body.add_child(task)
+	body.add_child(UIKit.gap(4))
 	var supporter: bool = Profile.is_supporter()
 	var video: Button = UIKit.button("Revive (Supporter)" if supporter else "Revive · watch a video", "primary", Style.AMBER, 96, 28, "art:watch")
 	video.name = "ReviveVideo"
 	video.pressed.connect(func() -> void:
 		if not AdManager.rewarded_ready():
-			_status.text = "No video available right now." if AdManager.provider != null else "Videos are available in the Android app. You can revive with coins."
+			_status.text = "No video available right now." if AdManager.provider != null else "Revives are available in the Android app."
 			return
 		AdManager.show_rewarded(func(ok: bool) -> void:
 			if not is_inside_tree():
@@ -35,15 +38,7 @@ func build() -> void:
 		)
 	)
 	body.add_child(video)
-	var coins: Button = UIKit.button("Revive · %d coins" % Economy.REVIVE_COINS, "soft", Style.AMBER, 84, 25, "art:coin")
-	coins.name = "ReviveCoins"
-	coins.disabled = Profile.coins() < Economy.REVIVE_COINS
-	coins.pressed.connect(func() -> void:
-		if Profile.spend(Economy.REVIVE_COINS):
-			_revive()
-	)
-	body.add_child(coins)
-	var give_up: Button = UIKit.button("End run", "ghost", Style.AMBER, 72, 23)
+	var give_up: Button = UIKit.button("No thanks", "ghost", Style.AMBER, 72, 23)
 	give_up.name = "EndRun"
 	give_up.pressed.connect(func() -> void:
 		close()

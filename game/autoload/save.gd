@@ -5,7 +5,10 @@ extends Node
 
 signal saved
 
-const VERSION: int = 1
+const VERSION: int = 2
+## Kept from an older save when its progress can't carry over (version 1 had
+## 6 stages a world, coins and the Forge): settings and everything paid for.
+const KEEP: Array[String] = ["settings", "owned", "trials", "tips"]
 const DEFAULT_PATH: String = "user://ringburst_save.json"
 
 var path: String = DEFAULT_PATH
@@ -23,31 +26,17 @@ func _ready() -> void:
 static func defaults() -> Dictionary:
 	return {
 		"version": VERSION,
-		"coins": Economy.START_COINS,
-		# stage id -> {"stars": bitmask (1 clear, 2 no damage, 4 combo), "best": score}
+		# level id -> {"stars": 1-3, "best": score}
 		"cleared": {},
-		# coins bought with real money (kept on a progress reset)
-		"coins_bought": 0,
 		"owned": {},
 		"trials": {},
 		"tips": 0,
-		"video": {"day": "", "coins": 0},
-		"daily": {"done": {}, "best": {}, "streak": 0, "best_streak": 0, "last_date": ""},
-		"endless": {"best": 0, "best_time": 0.0, "runs": 0},
-		# Forge levels (permanent upgrades), ring types and starting perks.
-		"forge": {},
-		"rings": {"classic": true},
-		"ring": "classic",
-		"perks": {},
-		"perk": "",
-		"synergies": {},
 		"achievements": {},
-		"stats": {"stages": 0, "stars": 0, "perfects": 0, "best_combo": 0, "kills": 0, "bosses": 0, "nodamage": 0,
-			"synergies": 0, "forge": 0, "rings": 1, "endless_time": 0, "dailies": 0, "best_streak": 0, "runs": 0},
+		"stats": {"levels": 0, "stars": 0, "perfects": 0, "best_combo": 0, "kills": 0, "bosses": 0, "flawless": 0, "runs": 0},
 		"settings": {"music_volume": 0.6, "sound_volume": 0.8, "haptics": true, "shake": true, "theme": "worlds",
 			"ring_style": "classic", "appearance": "auto"},
 		"seen": {},
-		"last_stage": "",
+		"last_level": "",
 	}
 
 
@@ -58,7 +47,17 @@ func load_data() -> void:
 		loaded = _read(path + ".bak")
 		recovered_from = "backup" if loaded != null else "fresh"
 	var d: Dictionary = loaded if loaded is Dictionary else {}
+	if not d.is_empty() and int(d.get("version", 1)) < VERSION:
+		var kept: Dictionary = {}
+		for k: String in KEEP:
+			if d.has(k):
+				kept[k] = d[k]
+		d = kept
 	data = _merge(defaults(), d)
+	# Drop anything an older version kept that this one no longer uses.
+	for k: Variant in data.keys():
+		if not defaults().has(k):
+			data.erase(k)
 	data["version"] = VERSION
 
 
@@ -113,18 +112,16 @@ func flush() -> void:
 	saved.emit()
 
 
-## Erases progress (stages, stars, streaks, achievements, Forge, rings, perks,
-## earned coins) but keeps settings and everything paid for: packs, trials,
-## tips and bought coins.
+## Erases progress (levels, stars, stats, awards, tutorial and intro flags)
+## but keeps settings and everything paid for: packs, trials and tips.
 func reset() -> void:
 	var keep: Dictionary = {}
-	for k: String in ["settings", "owned", "trials", "tips", "coins_bought"]:
+	for k: String in KEEP:
 		keep[k] = data.get(k)
 	data = defaults()
 	for k: String in keep:
 		if keep[k] != null:
 			data[k] = keep[k]
-	data["coins"] = Economy.START_COINS + int(data["coins_bought"])
 	flush()
 
 

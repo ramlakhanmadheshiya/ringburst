@@ -1,12 +1,11 @@
 extends Screen
-## Title screen, laid out like Single Shot's: Shop, coins and Settings along
-## the top; the name; a live demo arena where the bot plays; one Play button
-## with where it continues; a quiet row of round buttons (Worlds, Forge,
-## Endless, Awards); and today's Daily Run as one slim row.
+## Title screen, laid out like Single Shot's: Shop and Settings along the top;
+## the name; a live demo arena where the bot plays; one Play button that opens
+## the next level, with which level that is; and a quiet row of round buttons
+## (Worlds, Awards, How to play).
 
-var _daily_status: Label
-var _daily_btn: Button
 var _demo: ArenaView
+var _demo_spec: Dictionary = {}
 
 
 func build() -> void:
@@ -21,9 +20,10 @@ func build() -> void:
 	var fill: Control = Control.new()
 	fill.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	top.add_child(fill)
-	var coins: CounterChip = UIKit.coin_chip()
-	coins.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	top.add_child(coins)
+	var stars: Label = UIKit.label("★ %d" % Profile.total_stars(), Style.SIZE_SMALL + 1, Style.MUTED, 600)
+	stars.name = "Stars"
+	top.add_child(stars)
+	top.add_child(UIKit.gap(4))
 	var settings: Button = UIKit.icon_button("settings")
 	settings.name = "SettingsButton"
 	settings.pressed.connect(func() -> void: app.open_settings())
@@ -53,23 +53,19 @@ func build() -> void:
 	_demo.set_world(0)
 	frame.add_child(_demo)
 	body.add_child(frame)
-	var demo_spec: Dictionary = Worlds.endless_spec(4242)
-	demo_spec["difficulty"] = 1.2
-	var demo_sim: RunSim = RunSim.new(demo_spec, RunStats.make({"power": 2}))
-	# Start in the middle of the action.
-	var bot: Bot = Bot.new("perfect", 11)
-	while demo_sim.t < 9.0:
-		bot.act(demo_sim)
-		demo_sim.step()
-	_demo.start(demo_sim)
+	# A Neon Shore level with no task, so the demo never ends on its own.
+	_demo_spec = Worlds.level_spec(0, 20)
+	_demo_spec["goal"] = {}
+	_demo_spec["length"] = 20.0
+	_start_demo()
 	frame.gui_input.connect(func(e: InputEvent) -> void:
 		if e is InputEventMouseButton and e.pressed and (e as InputEventMouseButton).button_index == MOUSE_BUTTON_LEFT:
 			_play()
 	)
 	body.add_child(UIKit.gap(28))
 
-	# One main action, and where it continues.
-	var next: Array[int] = Profile.next_stage()
+	# One main action, and which level it opens.
+	var next: Array[int] = Profile.next_level()
 	var all_done: bool = Profile.all_cleared()
 	var play: Button = UIKit.button("Play", "primary", Style.AMBER, 96, 34, "play")
 	play.name = "Play"
@@ -83,103 +79,48 @@ func build() -> void:
 	play.resized.connect(func() -> void: play.pivot_offset = play.size / 2)
 	play.button_down.connect(func() -> void: pulse.kill())
 	body.add_child(UIKit.gap(12))
-	var where: Label = UIKit.label("Every world cleared · try Endless" if all_done else "%s · Stage %d" % [Worlds.world(next[0])["name"], next[1] + 1], Style.SIZE_CAPTION + 1, Style.MUTED, 600)
-	where.name = "NextStage"
+	var where: Label = UIKit.label("Every level cleared · chase three stars" if all_done else "%s · Level %d" % [Worlds.world(next[0])["name"], next[1] + 1], Style.SIZE_CAPTION + 1, Style.MUTED, 600)
+	where.name = "NextLevel"
 	body.add_child(where)
 	body.add_child(UIKit.gap(26))
 
 	# Everything else: round buttons with small captions, like Single Shot's result card.
-	var row: HBoxContainer = UIKit.hbox(30)
+	var row: HBoxContainer = UIKit.hbox(34)
 	row.add_child(_round("Worlds", "layout-grid", func() -> void: app.go("worlds")))
-	row.add_child(_round("Forge", "hammer", func() -> void: app.go("forge")))
-	row.add_child(_round("Endless", "infinity" if Profile.endless_unlocked() else "lock", func() -> void:
-		if Profile.endless_unlocked():
-			app.go("play", {"mode": "endless"})
-		else:
-			Audio.play("error", 1.2, -8.0)
-			app.toast("Clear Neon Shore stage 3 to open Endless", "lock", Style.AMBER)
-	))
 	row.add_child(_round("Awards", "trophy", func() -> void: app.open(AchievementsCard.new())))
+	row.add_child(_round("How to play", "circle-help", func() -> void: app.open(HowToCard.new()), "HowToPlay"))
 	body.add_child(row)
-	body.add_child(UIKit.gap(22))
-	body.add_child(_daily_row())
-
-	var timer: Timer = Timer.new()
-	timer.wait_time = 1.0
-	timer.autostart = true
-	timer.timeout.connect(_update_daily)
-	add_child(timer)
-	_update_daily()
 
 
-func _round(text: String, icon: String, cb: Callable) -> VBoxContainer:
+func _round(text: String, icon: String, cb: Callable, node_name: String = "") -> VBoxContainer:
 	var box: VBoxContainer = UIKit.vbox(8)
 	var b: Button = UIKit.icon_button(icon, 80)
-	b.name = text
+	b.name = node_name if not node_name.is_empty() else text
 	b.pressed.connect(cb)
 	box.add_child(b)
 	box.add_child(UIKit.caption(text, Style.MUTED, 15))
 	return box
 
 
+func _start_demo() -> void:
+	var sim: RunSim = RunSim.new(_demo_spec)
+	# Start in the middle of the action.
+	var bot: Bot = Bot.new("perfect", 11)
+	while sim.t < 9.0:
+		bot.act(sim)
+		sim.step()
+	_demo.start(sim)
+
+
+func _process(_delta: float) -> void:
+	# The bot can (rarely) lose: start the demo again.
+	if _demo != null and _demo.sim != null and _demo.sim.is_over():
+		_start_demo()
+
+
 func _play() -> void:
 	if Profile.all_cleared():
 		app.go("worlds")
 		return
-	var next: Array[int] = Profile.next_stage()
-	app.open(StageCard.make(next[0], next[1]))
-
-
-## Today's Daily Run as one quiet pill: the calendar, its modifier, and the
-## streak or countdown. Tapping it opens the Daily card.
-func _daily_row() -> Button:
-	_daily_btn = UIKit.button("", "soft", Style.AMBER, 84, 22)
-	_daily_btn.name = "Daily"
-	_daily_btn.custom_minimum_size.x = 520
-	_daily_btn.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	_daily_btn.pressed.connect(func() -> void:
-		if not Profile.daily_unlocked():
-			Audio.play("error", 1.2, -8.0)
-			app.toast("Clear your first stage to open the Daily Run", "lock", Style.AMBER)
-			return
-		app.open(DailyCard.new())
-	)
-	var row: HBoxContainer = UIKit.hbox(14, BoxContainer.ALIGNMENT_BEGIN)
-	row.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	row.offset_left = 26
-	row.offset_right = -22
-	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_daily_btn.add_child(row)
-	row.add_child(UIKit.icon_rect("calendar", 34, Style.PINK))
-	var mid: VBoxContainer = UIKit.vbox(0)
-	mid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	mid.alignment = BoxContainer.ALIGNMENT_CENTER
-	mid.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var mod: String = str(Worlds.daily_spec(Profile.today_key())["modifier"])
-	mid.add_child(UIKit.label("Daily Run · %s" % Worlds.MODIFIERS[mod]["name"], Style.SIZE_SMALL + 1, Style.INK, 600, HORIZONTAL_ALIGNMENT_LEFT))
-	_daily_status = UIKit.label("", Style.SIZE_CAPTION - 1, Style.MUTED, 500, HORIZONTAL_ALIGNMENT_LEFT)
-	_daily_status.name = "DailyStatus"
-	_daily_status.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	mid.add_child(_daily_status)
-	row.add_child(mid)
-	row.add_child(UIKit.icon_rect("chevron-right", 28, Style.MUTED))
-	return _daily_btn
-
-
-func _update_daily() -> void:
-	var today: String = Profile.today_key()
-	if not Profile.daily_unlocked():
-		_daily_status.text = "Clear your first stage to unlock"
-		return
-	var streak: int = Profile.current_streak()
-	var streak_text: String = "%d-day streak" % streak if streak > 0 else "Start a streak"
-	if Profile.daily_done(today):
-		var now: Dictionary = Time.get_time_dict_from_system()
-		var left: int = 86400 - (int(now["hour"]) * 3600 + int(now["minute"]) * 60 + int(now["second"]))
-		_daily_status.text = "Done · best %d · new run in %dh %02dm" % [Profile.daily_best(today), left / 3600, (left % 3600) / 60]
-	else:
-		_daily_status.text = "%s · +%d coins" % [streak_text, Economy.daily_reward(streak + 1)]
-
-
-func refresh() -> void:
-	_update_daily()
+	var next: Array[int] = Profile.next_level()
+	app.open(LevelCard.make(next[0], next[1]))

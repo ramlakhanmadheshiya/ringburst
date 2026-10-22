@@ -1,25 +1,23 @@
 class_name Bot
 extends RefCounted
-## An auto-player for RunSim. The tests use it to prove every stage can be
+## An auto-player for RunSim. The tests use it to prove every level can be
 ## beaten and that the curve climbs; the home screen uses it as a live demo.
 ##
 ## "perfect": holds, and lets go the moment a shape sits on the ring's edge
 ## (or when something slips inside a full-size ring).
-## "sloppy": lets go at roughly the right size, late and imprecise, never
-## aiming for perfects; a stand-in for a first-time player.
+## "sloppy": a stand-in for a first-time player, with human limits: it pauses
+## a moment after every burst, holds for at least half a second, and lets go
+## at roughly the right size, late and imprecise, never aiming for perfects.
 
-const PRIORITY: Array[String] = [
-	"shatter", "resonance", "supernova", "inferno",
-	"heavy_wave", "regen", "quick_charge", "long_reach", "pierce", "echo", "wide_band", "chain",
-	"thorns", "orbit", "frost", "static", "second_wind", "afterglow", "knockback", "pulse",
-	"overcharge", "ember", "ricochet", "split", "fast_wave", "magnet", "lifeline", "combo_keeper",
-	"scholar", "greed",
-]
+const SLOPPY_REST: Vector2 = Vector2(0.25, 0.45)
+const SLOPPY_MIN_HOLD: int = 30
 
 var skill: String = "perfect"
 var rng: Rng
 var _late: int = 0
 var _offset: float = 0.0
+var _rest: int = 0
+var _held: int = 0
 
 
 func _init(kind: String = "perfect", seed_value: int = 5) -> void:
@@ -28,34 +26,26 @@ func _init(kind: String = "perfect", seed_value: int = 5) -> void:
 	_offset = rng.range_f(-50.0, 90.0)
 
 
-## Decides input for the coming step (and answers upgrade choices).
+## Decides input for the coming step.
 func act(sim: RunSim) -> void:
-	if sim.state == RunSim.State.CHOOSING:
-		sim.choose(pick(sim))
-		return
 	if sim.state != RunSim.State.RUNNING:
 		return
 	if not sim.charging:
+		if _rest > 0:
+			_rest -= 1
+			sim.set_holding(false)
+			return
+		_held = 0
 		sim.set_holding(_threat_near(sim))
 		return
 	if skill == "perfect":
 		sim.set_holding(not _release_now(sim))
-	else:
-		sim.set_holding(not _sloppy_release(sim))
-
-
-## Index of the best offer by a fixed priority list.
-func pick(sim: RunSim) -> int:
-	var best: int = 0
-	var best_rank: int = 999
-	for i: int in sim.offers.size():
-		var rank: int = PRIORITY.find(str(sim.offers[i]))
-		if rank < 0:
-			rank = 500
-		if rank < best_rank:
-			best_rank = rank
-			best = i
-	return best
+		return
+	_held += 1
+	var go: bool = _held >= SLOPPY_MIN_HOLD and _sloppy_release(sim)
+	sim.set_holding(not go)
+	if go:
+		_rest = int(rng.range_f(SLOPPY_REST.x, SLOPPY_REST.y) * 60.0)
 
 
 func _nearest(sim: RunSim) -> float:
@@ -124,18 +114,9 @@ func _sloppy_release(sim: RunSim) -> bool:
 	return false
 
 
-## Forge levels a player could plausibly own when they reach world `w`
-## (used by the tests: the campaign assumes some meta-progression).
-static func typical_forge(w: int) -> Dictionary:
-	return {
-		"power": mini(5, int(w * 0.8)), "charge": mini(5, int(w * 0.6)), "reach": mini(5, int(w * 0.6)),
-		"eye": mini(5, int(w * 0.5)), "shield": 1 if w >= 5 else 0, "scholar": mini(5, int(w * 0.5)),
-	}
-
-
-## Plays a whole run to the end (or until max_seconds) and returns a summary.
-static func play(spec: Dictionary, stats: RunStats, kind: String = "perfect", max_seconds: float = 400.0) -> Dictionary:
-	var sim: RunSim = RunSim.new(spec, stats)
+## Plays a whole level to the end (or until max_seconds) and returns a summary.
+static func play(spec: Dictionary, kind: String = "perfect", max_seconds: float = 400.0) -> Dictionary:
+	var sim: RunSim = RunSim.new(spec)
 	var bot: Bot = Bot.new(kind, int(spec.get("seed", 3)))
 	var limit: int = int(max_seconds * 60.0)
 	while not sim.is_over() and sim.ticks < limit:
@@ -145,5 +126,5 @@ static func play(spec: Dictionary, stats: RunStats, kind: String = "perfect", ma
 		"won": sim.state == RunSim.State.WON, "lost": sim.state == RunSim.State.LOST, "time": sim.t,
 		"score": sim.score, "kills": sim.kills, "damage": sim.damage_taken, "lives": sim.lives,
 		"perfects": sim.perfects, "releases": sim.releases, "best_combo": sim.best_combo,
-		"level": sim.level, "stars": sim.stars_mask(), "coins": sim.coins_earned(),
+		"stars": sim.stars(),
 	}

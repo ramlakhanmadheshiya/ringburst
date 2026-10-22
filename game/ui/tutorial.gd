@@ -1,9 +1,9 @@
 class_name Tutorial
 extends Control
-## Hands-on first-play tutorial (Neon Shore stage 1), like Single Shot's: it
+## Hands-on first-play tutorial (Neon Shore level 1), like Single Shot's: it
 ## never blocks input. The player really holds and releases while an animated
 ## hand and short captions guide them; tutorial shapes wait at a set distance
-## until they're burst. Then the real stage starts.
+## until they're burst. Then the real level starts.
 
 signal done
 
@@ -63,7 +63,7 @@ func _go(next: int) -> void:
 		Step.DANGER:
 			_say("Shapes that reach your core break a shield. Burst them first!")
 		Step.READY:
-			_say("You're ready. Survive until the boss comes, then beat it!")
+			_say("You're ready! Every level has one task. Finish it to clear the level.")
 
 
 func _say(text: String) -> void:

@@ -9,7 +9,6 @@ extends Control
 ## In demo mode a Bot plays, silently, in whatever rect it is given (the home
 ## screen's live preview).
 
-signal choosing
 signal finished(won: bool)
 signal sim_event(ev: Dictionary)
 
@@ -44,8 +43,6 @@ var _rings: Array[Dictionary] = []
 var _edge_cue: bool = false
 var _tick_step: int = 0
 var _gate: Dictionary = {}
-var _gem_streak: int = 0
-var _gem_t: float = 0.0
 var _over: bool = false
 var _scale: float = 1.0
 var _origin: Vector2 = Vector2.ZERO
@@ -157,16 +154,8 @@ func _advance(delta: float) -> void:
 		steps += 1
 		if demo and bot != null:
 			bot.act(sim)
-			if sim.state == RunSim.State.CHOOSING:
-				sim.choose(bot.pick(sim))
-		var was_running: bool = sim.state == RunSim.State.RUNNING
 		sim.step()
 		_on_events(sim.events)
-		if sim.state == RunSim.State.CHOOSING and was_running:
-			sim.cancel_charge()
-			if not demo:
-				choosing.emit()
-			break
 		if sim.is_over():
 			break
 	if _acc > RunSim.TICK * 4.0:
@@ -272,20 +261,10 @@ func _on_events(events: Array[Dictionary]) -> void:
 				_ring_fx(Vector2.ZERO, RunSim.CORE_R, 180.0, Color("FF4F6E"), 0.45)
 				if not demo:
 					Haptics.error()
-			"blast", "second_wind", "revive":
+			"blast", "revive":
 				_ring_fx(Vector2.ZERO, RunSim.CORE_R, 320.0, pal["accent"], 0.5)
 				if str(ev["t"]) != "blast":
 					_sound("shield", 1.2, -2.0, 100)
-			"shield":
-				_sound("shield", 1.0, -4.0, 100)
-				_text(Vector2(0, RunSim.CORE_R + 50), "+1 SHIELD", Color("8FF7FF"), 26)
-			"gem":
-				_gem_streak = _gem_streak + 1 if _gem_t > 0.0 else 0
-				_gem_t = 0.35
-				_sound("gem", 1.0 + minf(1.0, _gem_streak * 0.06), -14.0, 30)
-			"level_up":
-				_sound("levelup", 1.0, -2.0, 200)
-				_ring_fx(Vector2.ZERO, RunSim.CORE_R, 140.0, pal["gem"], 0.5)
 			"boss":
 				_sound("boss", 1.0, 0.0, 500)
 				add_trauma(0.5)
@@ -305,8 +284,6 @@ func _on_events(events: Array[Dictionary]) -> void:
 			"lost":
 				_sound("lose", 1.0, 0.0, 500)
 				add_trauma(1.0)
-			"pulse":
-				_ring_fx(Vector2.ZERO, RunSim.CORE_R, 150.0, Color(pal["accent"], 0.6), 0.3)
 
 
 # --- Effects ----------------------------------------------------------------------
@@ -333,7 +310,6 @@ func _text(pos: Vector2, text: String, col: Color, size: int) -> void:
 
 func _update_fx(delta: float) -> void:
 	var d: float = delta * (0.35 if _slowmo_t > 0.0 else 1.0)
-	_gem_t -= delta
 	for p: Dictionary in _particles:
 		p["life"] = float(p["life"]) + d
 		p["p"] = (p["p"] as Vector2) + (p["v"] as Vector2) * d
@@ -403,7 +379,6 @@ func _draw() -> void:
 	var danger: float = clampf(1.0 - (near - RunSim.CORE_R) / 140.0, 0.0, 1.0)
 	if danger > 0.0:
 		draw_arc(Vector2.ZERO, RunSim.CORE_R + 26.0, 0.0, TAU, 48, Color(1.0, 0.3, 0.35, 0.25 * danger * (0.6 + 0.4 * sin(_t * 12.0))), 6.0, true)
-	_draw_gems()
 	_draw_waves()
 	_draw_enemies()
 	_draw_core()
@@ -459,13 +434,6 @@ func _draw_core() -> void:
 		var p: Vector2 = Vector2.from_angle(a) * (r + 15.0)
 		var on: bool = i < sim.lives
 		draw_circle(p, 5.5, Color(acc, 1.0) if on else Color(acc, 0.18))
-	# Thorns aura and satellites.
-	if sim.stats.thorns_damage() > 0.0:
-		_dashed_circle(self, sim.stats.thorns_radius(), Color(acc, 0.22), 2.0, 40)
-	var ns: int = sim.stats.orbit_count()
-	for k: int in ns:
-		var sp: Vector2 = Vector2.from_angle(sim.shard_angle + TAU * float(k) / float(ns)) * RunSim.SHARD_RADIUS
-		Shapes.fill(self, sp, RunSim.SHARD_SIZE, 3, sim.shard_angle * 3.0, Color(acc, 0.9))
 
 
 func _ring_col(ang: float, base: Color) -> Color:
@@ -492,12 +460,10 @@ func _draw_charge() -> void:
 	var acc: Color = pal["accent"]
 	var r: float = sim.ring_r
 	var hot: bool = not sim.perfect_targets(r).is_empty()
-	var oc: float = sim.overcharge_bonus()
 	var col: Color = acc.lerp(Color.WHITE, 0.55) if hot else acc
-	var width: float = (9.0 if hot else 6.0) + oc * 6.0
-	var jitter: float = sin(_t * 60.0) * 2.0 * oc
+	var width: float = 9.0 if hot else 6.0
 	draw_circle(Vector2.ZERO, r, Color(acc, 0.05 + (0.04 if hot else 0.0)))
-	_draw_ring(self, r + jitter, col, width, 1.0)
+	_draw_ring(self, r, col, width, 1.0)
 	if hot:
 		for e: RunSim.Enemy in sim.perfect_targets(r):
 			draw_arc(e.pos, e.radius + 10.0, 0.0, TAU, 32, Color(1, 1, 1, 0.8), 3.0, true)
@@ -506,24 +472,12 @@ func _draw_charge() -> void:
 func _draw_waves() -> void:
 	var acc: Color = pal["accent"]
 	for w: RunSim.Wave in sim.waves:
-		if w.delay > 0.0 or w.done:
+		if w.done:
 			continue
 		var col: Color = Color("FFE98A") if w.crit else acc
-		if w.kind == RunSim.WaveKind.ECHO:
-			col = col.lerp(Color.WHITE, 0.3)
-		var fade: float = 1.0
-		if w.lingering:
-			fade = 0.55 + 0.45 * sin(_t * 20.0)
-		elif w.kind != RunSim.WaveKind.RETURN:
-			fade = 1.0 - 0.5 * clampf((w.r - w.start_r) / maxf(1.0, w.max_r - w.start_r), 0.0, 1.0)
-		if w.kind == RunSim.WaveKind.ARCS:
-			for c: float in w.arcs:
-				draw_arc(Vector2.ZERO, w.r, c - w.arc_w * 0.5, c + w.arc_w * 0.5, 16, Color(col, fade), 10.0, true)
-			continue
-		if w.kind == RunSim.WaveKind.MAIN or w.kind == RunSim.WaveKind.PULSE:
-			draw_circle(Vector2.ZERO, w.r, Color(col, 0.05 * fade))
-		var width: float = 12.0 if w.kind == RunSim.WaveKind.MAIN else 7.0
-		_draw_ring(self, w.r, col, width, fade)
+		var fade: float = 1.0 - 0.5 * clampf((w.r - RunSim.RING_MIN) / maxf(1.0, w.max_r - RunSim.RING_MIN), 0.0, 1.0)
+		draw_circle(Vector2.ZERO, w.r, Color(col, 0.05 * fade))
+		_draw_ring(self, w.r, col, 12.0, fade)
 
 
 func _draw_enemies() -> void:
@@ -531,10 +485,6 @@ func _draw_enemies() -> void:
 		if not e.alive:
 			continue
 		var col: Color = Color("FF5C7A") if e.is_boss else _enemy_color(e.color)
-		if e.slow_t > 0.0:
-			col = col.lerp(Color("9FE8FF"), 0.5)
-		if e.burn_t > 0.0 and int(_t * 10.0) % 2 == 0:
-			col = col.lerp(Color("FF9F43"), 0.5)
 		var alpha: float = 0.25 if e.phased else 1.0
 		var fade_in: float = clampf(e.age / 0.3, 0.0, 1.0)
 		alpha *= fade_in
@@ -573,20 +523,6 @@ func _draw_enemies() -> void:
 			draw_rect(Rect2(e.pos.x - w / 2.0, y, w * clampf(e.hp / e.max_hp, 0.0, 1.0), 5.0), Color(col, alpha))
 
 
-func _draw_gems() -> void:
-	var gc: Color = pal["gem"]
-	for g: RunSim.Gem in sim.gems:
-		if not g.alive:
-			continue
-		var s: float = 6.0 + minf(6.0, float(g.value))
-		var bob: float = 0.0 if g.pulled else sin(_t * 4.0 + g.pos.x) * 2.0
-		var p: Vector2 = g.pos + Vector2(0, bob)
-		var pts: PackedVector2Array = PackedVector2Array([p + Vector2(0, -s), p + Vector2(s * 0.7, 0), p + Vector2(0, s), p + Vector2(-s * 0.7, 0)])
-		draw_colored_polygon(pts, gc)
-		if g.pulled:
-			draw_line(p, p + p.normalized() * 14.0, Color(gc, 0.5), 3.0, true)
-
-
 ## Additive glow pass (skipped on light palettes).
 func _draw_glow(ci: CanvasItem) -> void:
 	if sim == null or _light:
@@ -600,7 +536,7 @@ func _draw_glow(ci: CanvasItem) -> void:
 		var hot: bool = not sim.perfect_targets(sim.ring_r).is_empty()
 		_draw_ring(ci, sim.ring_r, acc, 26.0 * g, 0.18 if not hot else 0.32)
 	for w: RunSim.Wave in sim.waves:
-		if w.delay > 0.0 or w.done or w.kind == RunSim.WaveKind.ARCS:
+		if w.done:
 			continue
 		var col: Color = Color("FFE98A") if w.crit else acc
 		_draw_ring(ci, w.r, col, 34.0 * g, 0.16)

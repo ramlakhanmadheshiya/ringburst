@@ -57,28 +57,29 @@ func _review_set() -> void:
 	app.go("worlds")
 	await _wait(0.9)
 	await _shot("worlds")
-	app.go("stages", {"world": 3})
-	await _wait(0.9)
-	await _shot("stages")
-	app.open(StageCard.make(3, 4))
+	app.go("levels", {"world": 3})
+	await _wait(1.0)
+	await _shot("levels")
+	app.open(LevelCard.make(3, 23))
 	await _wait(0.7)
-	await _shot("stage_card")
+	await _shot("level_card")
+	app.close_overlays()
+	app.open(LevelCard.make(3, 29))
+	await _wait(0.7)
+	await _shot("level_card_giant")
 	app.close_overlays()
 	await _wait(0.3)
-	# A run in Fracture, mid-fight, with a charging ring.
-	await _run_scene(3, 3, 24.0)
+	# A level in Fracture, mid-fight, with a charging ring.
+	await _run_scene(3, 23, 16.0)
 	await _shot("play")
-	await _choice()
-	await _shot("levelup")
-	app.close_overlays()
-	await _wait(0.2)
 	var play: Node = app.screen
+	play.arena.paused = false
 	play.pause()
 	await _wait(0.6)
 	await _shot("pause")
 	app.close_overlays()
 	await _wait(0.3)
-	await _finish_run(true)
+	await _finish_run()
 	await _shot("result")
 	var result: Overlay = app.top_overlay()
 	if result != null:
@@ -87,8 +88,8 @@ func _review_set() -> void:
 		await _shot("share")
 	app.close_overlays()
 	await _wait(0.3)
-	# Boss fight.
-	await _run_scene(5, 5, 104.0)
+	# A boss fight.
+	await _run_scene(5, 39, 22.0)
 	await _shot("boss")
 	app.screen.arena.paused = true
 	var revive: ReviveCard = ReviveCard.new()
@@ -98,27 +99,28 @@ func _review_set() -> void:
 	await _shot("revive")
 	app.close_overlays()
 	await _wait(0.3)
-	app.go("forge")
-	await _wait(0.9)
-	await _shot("forge")
-	app.go("forge", {"tab": 1})
-	await _wait(0.9)
-	await _shot("forge_rings")
-	app.go("forge", {"tab": 2})
-	await _wait(0.9)
-	await _shot("forge_perks")
+	await _lose_run(2, 13)
+	await _shot("result_lost")
+	app.close_overlays()
 	app.go("shop")
 	await _wait(1.0)
 	await _shot("shop")
-	for o: Overlay in [_product("complete_pack"), _product("style_pack"), CoinsCard.new(), TipCard.new(), _picker("themes"), _picker("styles"), SettingsCard.new(), AchievementsCard.new(), AboutCard.new(), CreditsCard.new(), DailyCard.new(), HowToCard.new(), _new_shape(4)]:
+	for o: Overlay in [_product("complete_pack"), _product("style_pack"), TipCard.new(), _picker("themes"), _picker("styles"), SettingsCard.new(), AchievementsCard.new(), AboutCard.new(), CreditsCard.new(), HowToCard.new(), _new_shape(4)]:
 		app.open(o)
 		await _wait(0.9)
 		await _shot(o.name.to_lower() + ("_" + str(o.get("mode")) if o is PickerCard else ("_" + str(o.get("product")) if o is ProductCard else "")))
 		o.close()
 		await _wait(0.35)
+	var how: HowToCard = HowToCard.new()
+	app.open(how)
+	await _wait(0.5)
+	how._show(3)
+	await _wait(1.2)
+	await _shot("howto_task")
+	app.close_overlays()
 	# The first-play tutorial.
 	Save.data["seen"].erase("tutorial")
-	app.go("play", {"world": 0, "stage": 0})
+	app.go("play", {"world": 0, "level": 0})
 	await _wait(2.5)
 	await _shot("tutorial")
 	app.screen.arena.press()
@@ -132,7 +134,7 @@ func _review_set() -> void:
 	Save.data["owned"]["style_pack"] = true
 	Profile.set_setting("theme", "synthwave")
 	Profile.set_setting("ring_style", "prism")
-	await _run_scene(1, 2, 20.0)
+	await _run_scene(1, 12, 12.0)
 	await _shot("play_themed")
 	app.go("home")
 	await _wait(1.0)
@@ -143,43 +145,43 @@ func _review_set() -> void:
 	app.go("home")
 	await _wait(1.0)
 	await _shot("home_light")
-	await _run_scene(2, 2, 20.0)
+	await _run_scene(2, 13, 14.0)
 	await _shot("play_light")
-	app.go("worlds")
+	app.go("levels", {"world": 2})
 	await _wait(1.0)
-	await _shot("worlds_light")
+	await _shot("levels_light")
 
 
 ## The Play Store set (1080 x 1920 when the window is 1080 x 1920 or scaled).
 func _store_set() -> void:
 	await _wait(1.0)
 	await _shot("01_home")
-	await _run_scene(0, 3, 40.0)
+	await _run_scene(0, 13, 14.0)
 	await _shot("02_shore")
-	await _run_scene(3, 3, 50.0, "perfect")
+	await _run_scene(3, 23, 18.0, "perfect")
 	await _shot("03_fracture")
-	await _run_scene(5, 5, 104.0, "perfect")
+	await _run_scene(5, 39, 24.0, "perfect")
 	await _shot("04_boss")
-	await _run_scene(4, 2, 30.0)
-	await _choice()
-	await _shot("05_upgrades")
-	app.close_overlays()
-	await _finish_run(true)
+	app.go("levels", {"world": 3})
+	await _wait(1.2)
+	await _shot("05_levels")
+	await _run_scene(4, 13, 10.0)
+	await _finish_run()
 	await _shot("06_result")
 	app.close_overlays()
 	app.go("worlds")
 	await _wait(1.0)
 	await _shot("07_worlds")
-	app.go("forge")
+	app.open(LevelCard.make(3, 29))
 	await _wait(1.0)
-	await _shot("08_forge")
+	await _shot("08_level_card")
 
 
-## Opens a stage and lets the bot play it for `seconds` of game time, then
+## Opens a level and lets the bot play it for `seconds` of game time, then
 ## freezes it with the ring charging (or just after a PERFECT burst).
 func _run_scene(w: int, k: int, seconds: float, moment: String = "charge") -> void:
 	app.close_overlays()
-	app.go("play", {"world": w, "stage": k})
+	app.go("play", {"world": w, "level": k})
 	await _wait(0.8)
 	app.close_overlays()
 	var play: Node = app.screen
@@ -188,16 +190,12 @@ func _run_scene(w: int, k: int, seconds: float, moment: String = "charge") -> vo
 	play.arena.paused = true
 	while sim.t < seconds and not sim.is_over():
 		bot.act(sim)
-		if sim.state == RunSim.State.CHOOSING:
-			sim.choose(bot.pick(sim))
 		sim.step()
 	play.arena.paused = false
 	# Let the arena play live for a moment so effects are on screen.
 	var live: float = 0.0
-	while live < 1.2:
+	while live < 1.2 and not sim.is_over():
 		bot.act(sim)
-		if sim.state == RunSim.State.CHOOSING:
-			sim.choose(bot.pick(sim))
 		await get_tree().process_frame
 		live += get_process_delta_time()
 	if moment == "perfect":
@@ -209,8 +207,6 @@ func _run_scene(w: int, k: int, seconds: float, moment: String = "charge") -> vo
 		var guard: int = 0
 		while not got[0] and guard < 900 and not sim.is_over():
 			bot.act(sim)
-			if sim.state == RunSim.State.CHOOSING:
-				sim.choose(bot.pick(sim))
 			await get_tree().process_frame
 			guard += 1
 		play.arena.sim_event.disconnect(cb)
@@ -225,10 +221,6 @@ func _run_scene(w: int, k: int, seconds: float, moment: String = "charge") -> vo
 	var target: float = minf(sim.stats.max_r * 0.75, 260.0)
 	var frames: int = 0
 	while sim.ring_r < target and not sim.is_over() and frames < 600:
-		# A level-up pauses the ring; take the bot's pick and hold again.
-		if sim.state == RunSim.State.CHOOSING:
-			sim.choose(bot.pick(sim))
-			sim.input_down()
 		await get_tree().process_frame
 		frames += 1
 	play.arena.paused = true
@@ -236,29 +228,35 @@ func _run_scene(w: int, k: int, seconds: float, moment: String = "charge") -> vo
 	app.close_overlays()
 
 
-func _choice() -> void:
-	var play: Node = app.screen
-	var sim: RunSim = play.sim
-	sim.cancel_charge()
-	sim.pending_levels += 1
-	sim.state = RunSim.State.CHOOSING
-	sim.offers = Upgrades.offer(sim.offer_rng, sim.stats.levels, 3)
-	play._on_choosing()
-	await _wait(0.9)
-
-
-func _finish_run(win: bool) -> void:
+## Lets the bot finish the level on screen's sim, then waits for the result card.
+func _finish_run() -> void:
 	var play: Node = app.screen
 	var sim: RunSim = play.sim
 	var bot: Bot = Bot.new("perfect", 9)
 	sim.cancel_charge()
 	play.arena.paused = true
-	if win:
-		while not sim.is_over() and sim.t < 600.0:
-			bot.act(sim)
-			if sim.state == RunSim.State.CHOOSING:
-				sim.choose(bot.pick(sim))
-			sim.step()
+	while not sim.is_over() and sim.t < 600.0:
+		bot.act(sim)
+		sim.step()
+	play.arena.paused = false
+	await _wait(3.0)
+
+
+## Plays a level until it is lost twice (no revive), for the loss card.
+func _lose_run(w: int, k: int) -> void:
+	app.go("play", {"world": w, "level": k})
+	await _wait(0.8)
+	var play: Node = app.screen
+	var sim: RunSim = play.sim
+	var bot: Bot = Bot.new("perfect", 4)
+	play.arena.paused = true
+	while sim.t < 9.0 and not sim.is_over():
+		bot.act(sim)
+		sim.step()
+	sim.revives = 1
+	sim.lives = 1
+	sim.invuln_t = 0.0
+	sim.spawn_enemy(EnemyTypes.DRIFTER, Vector2(RunSim.CORE_R + 5.0, 0), 1.0, 1.0)
 	play.arena.paused = false
 	await _wait(3.0)
 
@@ -281,25 +279,19 @@ func _new_shape(t: int) -> NewShapeCard:
 	return o
 
 
-## A believable mid-game save: three worlds done with mixed stars, the fourth
-## part way, some Forge levels, rings and perks, coins.
+## A believable mid-game save: three worlds done with mixed stars and the
+## fourth part way.
 func _seed_progress() -> void:
 	for w: int in 4:
-		var upto: int = 6 if w < 3 else 3
+		var upto: int = Worlds.LEVELS_PER_WORLD if w < 3 else 24
 		for k: int in upto:
-			Save.data["cleared"][Worlds.stage_id(w, k)] = {"stars": 7 if (w + k) % 3 != 0 else (3 if k % 2 == 0 else 5), "best": 8000 + 2500 * w + 700 * k}
-	Save.data["coins"] = 1840
-	Save.data["forge"] = {"power": 2, "charge": 1, "reach": 2, "eye": 1}
-	Save.data["rings"] = {"classic": true, "twin": true, "glacier": true}
-	Save.data["perks"] = {"heavy_wave": true, "echo": true}
-	Save.data["perk"] = "heavy_wave"
-	Save.data["stats"]["stages"] = 21
+			Save.data["cleared"][Worlds.level_id(w, k)] = {"stars": 3 if (w + k) % 4 != 0 else (2 if k % 3 != 0 else 1), "best": 3000 + 600 * w + 40 * k}
+	Save.data["stats"]["levels"] = 3 * 40 + 24
 	Save.data["stats"]["stars"] = Profile.total_stars()
 	Save.data["stats"]["perfects"] = 940
 	Save.data["stats"]["best_combo"] = 46
 	Save.data["stats"]["kills"] = 6400
-	Save.data["daily"]["streak"] = 3
-	Save.data["daily"]["last_date"] = Worlds.date_key_from_day(Worlds.day_number(Profile.today_key()) - 1)
+	Save.data["stats"]["bosses"] = 3
 	Save.data["seen"] = {"tutorial": true, "intro_pulse": true, "intro_bloom": true, "intro_fracture": true, "intro_orbit": true, "intro_hive": true}
 	Profile.check_achievements()
 

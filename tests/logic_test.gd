@@ -1,9 +1,9 @@
 extends SceneTree
 ## Rules of the deterministic core, checked headless:
 ## the RNG, ring growth and release, wave hits and reach, PERFECT detection,
-## damage, the core and shields, shields on Wardens, splitting, upgrade effects
-## and offers, XP and level-ups, combos and whiffs, bosses and winning, stars,
-## replay determinism, the spawn director and the Daily Run.
+## damage, the core and shields, shields on Wardens, splitting, combos and
+## whiffs, every kind of level task, Giants and bosses, stars, the 320 levels
+## and their curve, replay determinism and the spawn director.
 ##
 ##   godot --headless --path . -s res://tests/logic_test.gd
 
@@ -18,23 +18,32 @@ func _init() -> void:
 	_core()
 	_shields()
 	_splitter()
-	_upgrades()
-	_offers()
-	_xp()
 	_combo()
+	_goals()
 	_boss()
 	_stars()
+	_levels()
 	_replay()
 	_director()
-	_daily()
 	quit(t.report())
 
 
 ## An empty arena (spawns switched off) to test rules in isolation.
-func quiet(stats: RunStats = null) -> RunSim:
-	var spec: Dictionary = Worlds.stage_spec(0, 0)
+func quiet() -> RunSim:
+	var spec: Dictionary = Worlds.level_spec(0, 0)
 	spec["mode"] = "tutorial"
-	return RunSim.new(spec, stats if stats != null else RunStats.make())
+	return RunSim.new(spec)
+
+
+## A level with spawns switched off and the given task.
+func task(goal: Dictionary) -> RunSim:
+	var spec: Dictionary = Worlds.level_spec(1, 5)
+	spec["mode"] = "tutorial"
+	var sim: RunSim = RunSim.new(spec)
+	sim.spec = spec.duplicate()
+	sim.spec["mode"] = "level"
+	sim.goal = goal
+	return sim
 
 
 func place(sim: RunSim, type: int, pos: Vector2) -> RunSim.Enemy:
@@ -95,7 +104,6 @@ func _ring() -> void:
 	t.ok(absf(sim.ring_r - (RunSim.RING_MIN + sim.stats.grow * RunSim.TICK * 30.0)) < 0.01, "the ring grows at the grow speed")
 	steps(sim, 600)
 	t.ok(is_equal_approx(sim.ring_r, sim.stats.max_r), "the ring stops at its full size")
-	t.ok(sim.at_max_t > 5.0, "time at full size is counted")
 	sim.input_up()
 	sim.step()
 	t.ok(not sim.charging, "letting go fires the ring")
@@ -206,12 +214,6 @@ func _shields() -> void:
 	t.ok(w.shield and is_equal_approx(w.hp, hp0), "a Warden's shield blocks a plain wave")
 	fire_at(sim, w.pos.length() - w.radius)
 	t.ok(not w.shield, "a perfect breaks the shield")
-	var pierce: RunStats = RunStats.make()
-	pierce.add("pierce")
-	var sim2: RunSim = quiet(pierce)
-	var w2: RunSim.Enemy = place(sim2, EnemyTypes.SHIELDED, Vector2(100, 0))
-	fire_at(sim2, 300.0)
-	t.ok(w2.hp < hp0, "Pierce Armour gets plain waves through shields")
 
 
 func _splitter() -> void:
@@ -231,189 +233,95 @@ func _splitter() -> void:
 	t.eq(minis, 3, "a splitter leaves three minis")
 
 
-func _upgrades() -> void:
-	var base: RunStats = RunStats.make()
-	var s: RunStats = RunStats.make()
-	s.add("heavy_wave")
-	t.ok(absf(s.damage - base.damage * 1.3) < 0.001, "Heavy Wave adds 30% damage")
-	s.add("quick_charge")
-	t.ok(s.grow > base.grow, "Quick Charge grows the ring faster")
-	s.add("long_reach")
-	t.ok(s.max_r > base.max_r, "Long Reach makes the ring bigger")
-	s.add("wide_band")
-	t.ok(s.perfect_band() > base.perfect_band(), "Sharp Eye widens the perfect window")
-	var forge: RunStats = RunStats.make({"power": 5, "shield": 2, "reach": 5})
-	t.eq(forge.max_lives, 5, "Forge shields add to the start")
-	t.ok(forge.damage > base.damage and forge.max_r > base.max_r, "Forge power and reach apply")
-	var twin: RunStats = RunStats.make({}, "twin")
-	t.eq(twin.level("echo"), 1, "the Twin ring starts with Echo")
-	var perk: RunStats = RunStats.make({}, "classic", "frost")
-	t.eq(perk.level("frost"), 1, "a starting perk is owned from the start")
-	# Echo: more waves per release.
-	var es: RunStats = RunStats.make()
-	es.add("echo")
-	var sim: RunSim = quiet(es)
-	sim.input_down()
-	steps(sim, 20)
-	sim.input_up()
-	sim.step()
-	t.eq(sim.waves.size(), 2, "Echo adds a second wave")
-	# Frost slows.
-	var fs: RunStats = RunStats.make()
-	fs.add("frost")
-	var fsim: RunSim = quiet(fs)
-	var fe: RunSim.Enemy = fsim.spawn_enemy(EnemyTypes.HEAVY, Vector2(250, 0), 3.0, 1.0)
-	fe.wobble = 0.0
-	fire_at(fsim, 300.0)
-	t.ok(fe.slow_t > 0.0, "Frost Ring slows what it hits")
-	# Thorns.
-	var ts: RunStats = RunStats.make()
-	ts.add("thorns")
-	var tsim: RunSim = quiet(ts)
-	var te: RunSim.Enemy = place(tsim, EnemyTypes.HEAVY, Vector2(80, 0))
-	var thp: float = te.hp
-	steps(tsim, 60)
-	t.ok(te.hp < thp, "Thorns hurt shapes near the core")
-	# Shield regen.
-	var rs: RunStats = RunStats.make()
-	rs.add("regen")
-	var rsim: RunSim = quiet(rs)
-	rsim.lives = 2
-	steps(rsim, int(18.5 * 60.0))
-	t.eq(rsim.lives, 3, "Shield Regen brings a shield back")
-	# Second wind.
-	var sw: RunStats = RunStats.make()
-	sw.add("second_wind")
-	var swsim: RunSim = quiet(sw)
-	swsim.lives = 1
-	swsim.spawn_enemy(EnemyTypes.DRIFTER, Vector2(RunSim.CORE_R + 5.0, 0), 1.0, 1.0)
-	swsim.step()
-	t.ok(swsim.state == RunSim.State.RUNNING and swsim.lives == 1, "Second Wind survives a fatal hit")
-	# Ricochet and split send follow-up waves.
-	var rc: RunStats = RunStats.make()
-	rc.add("ricochet")
-	rc.add("split")
-	var rcsim: RunSim = quiet(rc)
-	rcsim.input_down()
-	steps(rcsim, 20)
-	rcsim.input_up()
-	var kinds: Dictionary = {}
-	for i: int in 12:
-		rcsim.step()
-		for w: RunSim.Wave in rcsim.waves:
-			kinds[w.kind] = true
-	t.ok(kinds.has(RunSim.WaveKind.RETURN) and kinds.has(RunSim.WaveKind.ARCS), "Ricochet and Split follow the wave")
-	# Satellites cut what they touch.
-	var os: RunStats = RunStats.make()
-	os.add("orbit")
-	var osim: RunSim = quiet(os)
-	var oe: RunSim.Enemy = place(osim, EnemyTypes.HEAVY, Vector2(RunSim.SHARD_RADIUS, 0))
-	var ohp: float = oe.hp
-	steps(osim, 180)
-	t.ok(oe.hp < ohp, "Satellites cut shapes on their orbit")
-	# Overcharge.
-	var oc: RunStats = RunStats.make()
-	oc.add("overcharge")
-	var ocsim: RunSim = quiet(oc)
-	ocsim.input_down()
-	steps(ocsim, 300)
-	t.ok(ocsim.overcharge_bonus() > 0.49, "Overcharge builds up at full size")
-
-
-func _offers() -> void:
-	var rng: Rng = Rng.new(5)
-	var owned: Dictionary = {}
-	var distinct: bool = true
-	var no_syn: bool = true
-	for i: int in 200:
-		var o: Array = Upgrades.offer(rng, owned, 3)
-		var seen: Dictionary = {}
-		for id: Variant in o:
-			if seen.has(id):
-				distinct = false
-			seen[id] = true
-			if Upgrades.def(str(id)).has("requires"):
-				no_syn = false
-	t.ok(distinct, "offers never repeat an upgrade")
-	t.ok(no_syn, "synergies need their parts first")
-	t.eq(Upgrades.ids().size(), 30, "30 upgrades in the pool")
-	t.eq(Upgrades.synergy_ids().size(), 4, "4 synergies")
-	owned = {"frost": 1, "static": 1}
-	t.ok(Upgrades.can_offer("shatter", owned), "Shatter is offered once Frost and Static are owned")
-	owned["heavy_wave"] = Upgrades.max_level("heavy_wave")
-	t.ok(not Upgrades.can_offer("heavy_wave", owned), "a maxed upgrade is not offered again")
-	var found_syn: bool = false
-	for i: int in 50:
-		if Upgrades.offer(rng, owned, 3).has("shatter"):
-			found_syn = true
-	t.ok(found_syn, "an unlocked synergy turns up")
-	for id: String in Upgrades.ids():
-		t.ok(not Upgrades.describe(id, 1).is_empty(), "%s has a description" % id)
-		t.ok(ResourceLoader.exists("res://assets/icons/%s.svg" % str(Upgrades.def(id)["icon"])), "%s has an icon" % id)
-
-
-func _xp() -> void:
-	var sim: RunSim = quiet()
-	for i: int in 8:
-		var e: RunSim.Enemy = place(sim, EnemyTypes.DASHER, Vector2.from_angle(TAU * i / 8.0) * 150.0)
-		e.timer = 999.0
-	fire_at(sim, 200.0)
-	steps(sim, 30)
-	t.ok(sim.xp > 0.0 or sim.level > 0, "gems pulled in by the wave give XP")
-	sim.xp = sim.xp_needed() - 0.5
-	var g: RunSim.Gem = RunSim.Gem.new()
-	g.pos = Vector2(60, 0)
-	g.value = 1
-	sim.gems.append(g)
-	steps(sim, 20)
-	t.eq(sim.state, RunSim.State.CHOOSING, "a full XP bar pauses for an upgrade choice")
-	t.eq(sim.offers.size(), 3, "three upgrades are offered")
-	var pick: String = sim.offers[0]
-	sim.choose(0)
-	t.eq(sim.stats.level(pick), 1, "choosing takes the upgrade")
-	t.eq(sim.state, RunSim.State.RUNNING, "the run resumes")
-	sim.pending_levels = 1
-	sim.state = RunSim.State.CHOOSING
-	sim.rerolls_left = 1
-	var before: Array = sim.offers.duplicate()
-	t.ok(sim.reroll(), "a reroll swaps the offers")
-	t.ok(not sim.reroll(), "rerolls run out")
-	t.ok(before != sim.offers or before.is_empty(), "rerolled offers differ")
-
-
 func _combo() -> void:
 	var sim: RunSim = quiet()
 	sim.combo = 4
 	fire_at(sim, 100.0)
 	t.eq(sim.combo, 0, "a release that hits nothing breaks the combo")
 	t.eq(sim.whiffs, 1, "whiffs are counted")
-	var keep: RunStats = RunStats.make()
-	keep.add("combo_keeper")
-	var sim2: RunSim = quiet(keep)
-	sim2.combo = 4
-	fire_at(sim2, 100.0)
-	t.eq(sim2.combo, 4, "Steady Hands keeps the combo through a whiff")
 	t.ok(absf(sim.multiplier() - 1.0) < 0.001, "no combo, no multiplier")
 	sim.combo = 50
 	t.ok(absf(sim.multiplier() - 4.0) < 0.001, "the multiplier caps at x4")
 
 
+func _goals() -> void:
+	# Burst shapes.
+	var k: RunSim = task({"type": "kills", "n": 2})
+	place(k, EnemyTypes.DRIFTER, Vector2(120, 0))
+	fire_at(k, 200.0)
+	t.ok(k.state == RunSim.State.RUNNING and k.goal_count() == 1, "one of two shapes: still going")
+	t.ok(absf(k.goal_progress() - 0.5) < 0.001, "progress is half way")
+	place(k, EnemyTypes.DRIFTER, Vector2(0, 120))
+	fire_at(k, 200.0)
+	t.eq(k.state, RunSim.State.WON, "bursting the shapes clears the level")
+	t.eq(k.goal_progress(), 1.0, "a cleared task is complete")
+	# PERFECTs.
+	var p: RunSim = task({"type": "perfects", "n": 1})
+	place(p, EnemyTypes.DRIFTER, Vector2(200, 0))
+	fire_at(p, 120.0)
+	t.eq(p.state, RunSim.State.RUNNING, "a plain burst isn't a PERFECT")
+	var e: RunSim.Enemy = place(p, EnemyTypes.DRIFTER, Vector2(200, 0))
+	fire_at(p, 200.0 - e.radius)
+	t.eq(p.state, RunSim.State.WON, "landing the PERFECTs clears the level")
+	# Survive.
+	var s: RunSim = task({"type": "survive", "n": 2})
+	steps(s, 60)
+	t.eq(s.state, RunSim.State.RUNNING, "one second of two")
+	steps(s, 61)
+	t.eq(s.state, RunSim.State.WON, "lasting the time clears the level")
+	# Combo.
+	var c: RunSim = task({"type": "combo", "n": 2})
+	for i: int in 2:
+		var ce: RunSim.Enemy = place(c, EnemyTypes.DRIFTER, Vector2(0, 220))
+		fire_at(c, 220.0 - ce.radius)
+	t.eq(c.state, RunSim.State.WON, "two PERFECTs in a row reach a combo of 2")
+	# Hunt: only the named shape counts.
+	var h: RunSim = task({"type": "hunt", "n": 1, "shape": EnemyTypes.DASHER})
+	place(h, EnemyTypes.DRIFTER, Vector2(120, 0))
+	fire_at(h, 200.0)
+	t.eq(h.goal_count(), 0, "other shapes don't count for a hunt")
+	t.eq(h.state, RunSim.State.RUNNING, "the hunt goes on")
+	place(h, EnemyTypes.DASHER, Vector2(120, 0))
+	fire_at(h, 200.0)
+	t.eq(h.state, RunSim.State.WON, "bursting the hunted shape clears the level")
+	# Losing beats the task: no shields, no win.
+	var l: RunSim = task({"type": "survive", "n": 1})
+	l.lives = 1
+	l.spawn_enemy(EnemyTypes.DRIFTER, Vector2(RunSim.CORE_R + 5.0, 0), 1.0, 1.0)
+	l.step()
+	t.eq(l.state, RunSim.State.LOST, "losing every shield loses the level")
+	# The tutorial never ends on its own.
+	var tut: RunSim = quiet()
+	steps(tut, 300)
+	t.eq(tut.state, RunSim.State.RUNNING, "the tutorial has no task to finish")
+
+
 func _boss() -> void:
-	var spec: Dictionary = Worlds.stage_spec(0, 1)
-	spec["duration"] = 3.0
-	var sim: RunSim = RunSim.new(spec, RunStats.make())
-	steps(sim, 4 * 60)
-	t.ok(sim.boss_spawned and sim.boss_alive(), "the boss arrives when the stage timer runs out")
+	var spec: Dictionary = Worlds.level_spec(0, 9)
+	t.eq(str(spec["goal"]["type"]), "guardian", "level 10 is a Giant")
+	spec["boss_at"] = 3.0
+	var sim: RunSim = RunSim.new(spec)
+	steps(sim, 2 * 60)
+	t.ok(not sim.boss_spawned, "the Giant waits for its moment")
+	t.eq(sim.goal_progress(), 0.0, "no progress before it comes")
+	steps(sim, 2 * 60)
+	t.ok(sim.boss_spawned and sim.boss_alive(), "the Giant arrives")
+	for e: RunSim.Enemy in sim.enemies:
+		if e.is_boss:
+			e.hp = e.max_hp * 0.5
+	t.ok(absf(sim.goal_progress() - 0.5) < 0.05, "a boss task counts its health down")
 	for e: RunSim.Enemy in sim.enemies:
 		if e.is_boss:
 			e.hp = 0.01
 			e.pos = Vector2(0, -150)
 	fire_at(sim, 200.0)
-	t.eq(sim.state, RunSim.State.WON, "beating the boss clears the stage")
-	t.ok(sim.score >= RunSim.BOSS_SCORE, "the boss is worth a lot")
-	var hspec: Dictionary = Worlds.stage_spec(3, 5)
-	hspec["duration"] = 2.0
-	var hs: RunSim = RunSim.new(hspec, RunStats.make())
+	t.eq(sim.state, RunSim.State.WON, "beating the Giant clears the level")
+	t.ok(sim.score >= RunSim.BOSS_SCORE, "the Giant is worth a lot")
+	var hspec: Dictionary = Worlds.level_spec(3, 39)
+	t.eq(str(hspec["goal"]["type"]), "boss", "level 40 is the boss")
+	t.eq(str(hspec["boss"]["name"]), "Hydra", "Fracture's boss is the Hydra")
+	hspec["boss_at"] = 2.0
+	var hs: RunSim = RunSim.new(hspec)
 	steps(hs, 3 * 60)
 	for e: RunSim.Enemy in hs.enemies:
 		if e.is_boss:
@@ -425,29 +333,73 @@ func _boss() -> void:
 		if e.alive and e.is_boss:
 			halves += 1
 	t.eq(halves, 2, "the Hydra splits in two")
-	t.ok(hs.state != RunSim.State.WON, "the stage goes on until both halves are gone")
-	t.eq(Worlds.total_stages(), 48, "48 stages")
+	t.ok(hs.state != RunSim.State.WON, "the level goes on until both halves are gone")
 	for w: int in Worlds.count():
 		t.ok(not str(EnemyTypes.BOSSES[w]["name"]).is_empty(), "world %d has a boss" % (w + 1))
 
 
 func _stars() -> void:
 	var sim: RunSim = quiet()
-	t.eq(sim.stars_mask(), 0, "no stars before winning")
+	t.eq(sim.stars(), 0, "no stars before winning")
 	sim.state = RunSim.State.WON
-	sim.best_combo = 99
-	t.eq(sim.stars_mask(), 7, "clear + no damage + combo = all three stars")
-	sim.damage_taken = 1
-	sim.best_combo = 0
-	t.eq(sim.stars_mask(), 1, "clearing alone is one star")
-	t.eq(Economy.star_count(5), 2, "star_count counts bits")
+	t.eq(sim.stars(), 3, "every shield left: three stars")
+	sim.lives = 2
+	t.eq(sim.stars(), 2, "two shields: two stars")
+	sim.lives = 1
+	t.eq(sim.stars(), 1, "one shield: one star")
+	sim.lives = 2
+	sim.revives = 1
+	t.eq(sim.stars(), 1, "a revived level is worth one star")
+
+
+func _levels() -> void:
+	t.eq(Worlds.total_levels(), 320, "8 worlds of 40 levels")
+	var ids: Dictionary = {}
+	var texts_ok: bool = true
+	var round_trip: bool = true
+	var types: Dictionary = {}
+	for w: int in Worlds.count():
+		for k: int in Worlds.LEVELS_PER_WORLD:
+			var spec: Dictionary = Worlds.level_spec(w, k)
+			ids[spec["id"]] = true
+			types[spec["goal"]["type"]] = true
+			var boss: String = str((spec["boss"] as Dictionary).get("name", ""))
+			if Worlds.goal_text(spec["goal"], boss).is_empty() or int(spec["goal"]["n"]) < 1:
+				texts_ok = false
+			if Worlds.parse_level_id(spec["id"]) != [w, k]:
+				round_trip = false
+			if (str(spec["goal"]["type"]) in ["guardian", "boss"]) == (spec["boss"] as Dictionary).is_empty():
+				texts_ok = false
+	t.eq(ids.size(), 320, "every level has its own id")
+	t.ok(texts_ok, "every level has a task (and a boss when the task is one)")
+	t.ok(round_trip, "level ids round-trip")
+	for g: String in ["kills", "perfects", "survive", "combo", "hunt", "guardian", "boss"]:
+		t.ok(types.has(g), "some level asks: %s" % g)
+	t.eq(Worlds.parse_level_id("nowhere-3"), [-1, -1], "unknown ids are rejected")
+	t.eq(Worlds.goal_type(0, 0), "kills", "the very first level is just bursting shapes")
+	t.eq(Worlds.goal_type(2, 0), "hunt", "a world opens by hunting its new shape")
+	t.eq(int(Worlds.level_spec(2, 0)["featured"]), 2, "and shows it off first")
+	t.eq(Worlds.goal_text({"type": "hunt", "n": 4, "shape": EnemyTypes.SHIELDED}), "Burst 4 Wardens", "hunt text names the shape")
+	# The curve climbs: each world harder than the last, levels harder within one.
+	var climbs: bool = true
+	for w: int in Worlds.count():
+		if Worlds.difficulty(w, 38) <= Worlds.difficulty(w, 1):
+			climbs = false
+		if w > 0 and Worlds.difficulty(w, 5) <= Worlds.difficulty(w - 1, 5):
+			climbs = false
+	t.ok(climbs, "difficulty climbs through each world and from world to world")
+	t.ok(Worlds.difficulty(0, 10) < Worlds.difficulty(0, 9), "the level after a Giant eases off")
+	var bigger: bool = Worlds.goal(0, 36)["n"] > Worlds.goal(0, 6)["n"] and Worlds.goal(5, 1)["n"] > Worlds.goal(0, 1)["n"]
+	t.ok(bigger, "tasks grow through a world and from world to world")
+	t.ok(Director.new(Worlds.level_spec(0, 3)).hp_mult() == 1.0, "shapes are one hit in the first world")
+	t.ok(Director.new(Worlds.level_spec(5, 3)).hp_mult() > 1.0, "deeper worlds bring tougher shapes")
 
 
 func _replay() -> void:
-	var spec: Dictionary = Worlds.stage_spec(2, 3)
-	var a: Dictionary = Bot.play(spec, RunStats.make(), "perfect")
-	var b: Dictionary = Bot.play(Worlds.stage_spec(2, 3), RunStats.make(), "perfect")
-	t.eq(a, b, "the same run replays identically")
+	var spec: Dictionary = Worlds.level_spec(2, 13)
+	var a: Dictionary = Bot.play(spec, "perfect")
+	var b: Dictionary = Bot.play(Worlds.level_spec(2, 13), "perfect")
+	t.eq(a, b, "the same level replays identically")
 	# Spawns don't depend on what the player does.
 	var s1: Array = _spawn_log(spec, "perfect")
 	var s2: Array = _spawn_log(spec, "idle")
@@ -457,14 +409,12 @@ func _replay() -> void:
 
 
 func _spawn_log(spec: Dictionary, kind: String) -> Array:
-	var sim: RunSim = RunSim.new(spec, RunStats.make())
+	var sim: RunSim = RunSim.new(spec)
 	var bot: Bot = Bot.new("perfect", 1)
 	var out: Array = []
 	while sim.t < 40.0 and not sim.is_over():
 		if kind != "idle":
 			bot.act(sim)
-		elif sim.state == RunSim.State.CHOOSING:
-			sim.choose(0)
 		sim.step()
 		for ev: Dictionary in sim.events:
 			if ev["t"] == "spawn" and int(ev["type"]) != EnemyTypes.MINI:
@@ -473,19 +423,23 @@ func _spawn_log(spec: Dictionary, kind: String) -> Array:
 
 
 func _director() -> void:
-	var spec: Dictionary = Worlds.stage_spec(4, 2)
+	var spec: Dictionary = Worlds.level_spec(4, 29)
 	var a: Director = Director.new(spec)
-	var b: Director = Director.new(Worlds.stage_spec(4, 2))
+	var b: Director = Director.new(Worlds.level_spec(4, 29))
 	var la: Array = []
 	var lb: Array = []
-	for i: int in 120 * 60:
+	for i: int in 60 * 60:
 		for r: Dictionary in a.step(RunSim.TICK):
 			la.append(str(r.get("type", "boss")) + str(r["pos"]))
 		for r: Dictionary in b.step(RunSim.TICK):
 			lb.append(str(r.get("type", "boss")) + str(r["pos"]))
 	t.eq(la, lb, "the director is deterministic")
-	t.ok(a.boss_spawned, "the director sends the boss")
-	t.ok(la.size() > 60 and la.size() < 600, "a sensible number of spawns (%d)" % la.size())
+	t.ok(a.boss_spawned, "the director sends the Giant")
+	t.ok(la.size() > 20 and la.size() < 800, "a sensible number of spawns (%d)" % la.size())
+	var none: Director = Director.new(Worlds.level_spec(4, 28))
+	for i: int in 60 * 60:
+		none.step(RunSim.TICK)
+	t.ok(not none.boss_spawned, "no boss on an ordinary level")
 	var outside: bool = true
 	for k: int in 200:
 		var p: Vector2 = Director.edge_point(float(k) / 200.0)
@@ -493,45 +447,10 @@ func _director() -> void:
 			outside = false
 	t.ok(outside, "shapes enter from just outside the arena")
 	# Smooth rate: calm start, busy end.
-	var d: Director = Director.new(spec)
-	d.t = 10.0
-	var early: float = d.rate()
-	d.t = 70.0
-	var late: float = d.rate()
-	t.ok(late > early * 1.5, "the spawn rate climbs through a stage")
-	var e: Director = Director.new(Worlds.endless_spec(9))
-	e.t = 300.0
-	t.ok(e.difficulty() > Director.new(Worlds.endless_spec(9)).difficulty() + 5.0, "Endless keeps getting harder")
-
-
-func _daily() -> void:
-	var a: Dictionary = Worlds.daily_spec("2026-10-19")
-	var b: Dictionary = Worlds.daily_spec("2026-10-19")
-	t.eq(a, b, "the daily is built from the date alone")
-	t.ok(a["seed"] != Worlds.daily_spec("2026-10-20")["seed"], "each date has its own run")
-	# Pinned so an accidental change to the generator is caught.
-	t.eq(int(a["seed"]), 99418496, "the 2026-10-19 daily is pinned (seed)")
-	t.eq(str(a["modifier"]), "precision", "the 2026-10-19 daily is pinned (modifier)")
-	var mods: Dictionary = {}
-	var ok: bool = true
-	var monday: float = 0.0
-	var sunday: float = 0.0
-	for day: int in 365:
-		var key: String = Worlds.date_key_from_day(day + 280)
-		var s: Dictionary = Worlds.daily_spec(key)
-		mods[s["modifier"]] = true
-		if not Worlds.MODIFIERS.has(s["modifier"]) or int(s["world"]) < 0 or int(s["world"]) >= Worlds.count():
-			ok = false
-		var wd: int = int(Time.get_datetime_dict_from_unix_time(Time.get_unix_time_from_datetime_dict({"year": key.substr(0, 4).to_int(), "month": key.substr(5, 2).to_int(), "day": key.substr(8, 2).to_int(), "hour": 12}))["weekday"])
-		if wd == 1:
-			monday = float(s["difficulty"])
-		elif wd == 0:
-			sunday = float(s["difficulty"])
-	t.ok(ok, "a year of dailies is valid")
-	t.eq(mods.size(), Worlds.MODIFIERS.size(), "every modifier comes round")
-	t.ok(sunday > monday, "Sunday's daily is harder than Monday's")
-	var r1: Dictionary = Bot.play(a, RunStats.make(), "perfect")
-	var r2: Dictionary = Bot.play(Worlds.daily_spec("2026-10-19"), RunStats.make(), "perfect")
-	t.eq(r1["score"], r2["score"], "the same daily plays out the same for everyone")
-	t.ok(bool(r1["won"]), "a strong player can win the daily")
-	t.eq(Worlds.day_number(Worlds.date_key_from_day(400)), 400, "day numbers round-trip")
+	var d: Director = Director.new(Worlds.level_spec(2, 13))
+	d.t = 3.0
+	var early: float = d.base_rate()
+	d.t = d.length()
+	var late: float = d.base_rate()
+	t.ok(late > early * 1.5, "the spawn rate climbs through a level")
+	t.ok(Director.new(Worlds.level_spec(6, 13)).base_rate() > Director.new(Worlds.level_spec(1, 13)).base_rate(), "deeper worlds are busier")

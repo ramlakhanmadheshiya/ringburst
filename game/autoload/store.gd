@@ -12,25 +12,16 @@ signal price_updated(product: String, price: String)
 ## One-time packs, in shop order. "tier" picks the fallback price shown until
 ## Google Play answers.
 const PRODUCTS: Dictionary = {
-	"complete_pack": {"name": "Complete pack", "tier": 3, "blurb": "Everything below, plus 1,500 coins",
-		"perks": ["No banner ads", "Revive and double coins without videos", "11 colour themes", "6 ring styles", "1,500 coins for the Forge", "Yours to keep after one purchase"]},
-	"supporter_pack": {"name": "Supporter pack", "tier": 2, "blurb": "No ads, and every video reward free",
-		"perks": ["No banner ads", "Revive and double coins without watching a video", "Helps new worlds get made"]},
+	"complete_pack": {"name": "Complete pack", "tier": 3, "blurb": "Everything below in one pack",
+		"perks": ["No banner ads", "Revive without watching a video", "11 colour themes", "6 ring styles", "Yours to keep after one purchase"]},
+	"supporter_pack": {"name": "Supporter pack", "tier": 2, "blurb": "No ads, and revive without a video",
+		"perks": ["No banner ads", "Revive without watching a video", "Helps new worlds get made"]},
 	"theme_pack": {"name": "Theme pack", "tier": 1, "blurb": "Synthwave, Paper, Daylight and 8 more", "trial": true,
 		"perks": ["11 colour themes for the whole app and arena", "Pick one any time in Settings", "Yours to keep after one purchase"]},
 	"style_pack": {"name": "Ring styles", "tier": 1, "blurb": "Plasma, Prism, Aurora and 3 more", "trial": true,
 		"perks": ["6 new looks for your ring and waves", "Pick one any time in Settings", "Yours to keep after one purchase"]},
 }
-## Coin bags: consumable, smallest first; bigger bags give more coins per rupee.
-## id -> [coins, name, fallback price in rupees, fallback price in US dollars].
-const COIN_PACKS: Dictionary = {
-	"coins_500": [500, "Handful", 79, 0.99],
-	"coins_1500": [1500, "Pouch", 199, 2.49],
-	"coins_4000": [4000, "Chest", 449, 5.99],
-	"coins_10000": [10000, "Vault", 899, 11.99],
-}
-const COMPLETE_COINS: int = 1500
-## Per-unit fallback price by region (for coin bag and tip conversions): [symbol, amount, decimals].
+## Per-unit fallback price by region (for tip conversions): [symbol, amount, decimals].
 const UNIT_PRICE: Dictionary = {
 	"IN": ["₹", 30.0, 0], "US": ["$", 0.49, 2], "EU": ["€", 0.49, 2], "GB": ["£", 0.39, 2],
 	"CA": ["CA$", 0.69, 2], "AU": ["A$", 0.79, 2], "JP": ["¥", 80.0, 0], "BR": ["R$", 2.49, 2],
@@ -75,8 +66,6 @@ var _restoring: bool = false
 func _ready() -> void:
 	for id: String in PRODUCTS:
 		prices[id] = regional_price(tier_of(id))
-	for id: String in COIN_PACKS:
-		prices[id] = coins_price(id)
 	for n: int in range(TIP_MIN, TIP_MAX + 1, TIP_STEP):
 		prices["tip_%d" % n] = tip_price(n)
 	# Only create the client where the native plugin exists (Android builds).
@@ -94,30 +83,15 @@ static func tip_ids() -> Array:
 
 
 static func all_ids() -> Array:
-	return PRODUCTS.keys() + COIN_PACKS.keys() + tip_ids()
-
-
-## Fallback price of a coin bag: rupees in India, else US dollars scaled to the
-## local currency.
-static func coins_price(product: String) -> String:
-	var pack: Array = COIN_PACKS[product]
-	var region: String = _region()
-	if region == "IN":
-		return "₹%d" % int(pack[2])
-	var unit: Array = UNIT_PRICE.get(region, UNIT_PRICE["US"])
-	return _money(unit, float(pack[3]) * float(unit[1]) / float(UNIT_PRICE["US"][1]))
+	return PRODUCTS.keys() + tip_ids()
 
 
 static func is_tip(product: String) -> bool:
 	return product.begins_with("tip_")
 
 
-static func is_coins(product: String) -> bool:
-	return COIN_PACKS.has(product)
-
-
 static func is_consumable(product: String) -> bool:
-	return is_tip(product) or is_coins(product)
+	return is_tip(product)
 
 
 static func tier_of(product: String) -> int:
@@ -138,8 +112,6 @@ static func tip_price(rupees: int) -> String:
 
 
 static func display_name(product: String) -> String:
-	if COIN_PACKS.has(product):
-		return "%d coins" % int(COIN_PACKS[product][0])
 	return str(PRODUCTS.get(product, {}).get("name", "Tip"))
 
 
@@ -170,7 +142,6 @@ static func complete_saving() -> int:
 	var parts: float = 0.0
 	for id: String in ["supporter_pack", "theme_pack", "style_pack"]:
 		parts += float(str(us[tier_of(id)]).trim_prefix("$"))
-	parts += float(COIN_PACKS["coins_1500"][3])
 	var whole: float = float(str(us[tier_of("complete_pack")]).trim_prefix("$"))
 	return int(round((1.0 - whole / parts) * 100.0))
 
@@ -213,22 +184,14 @@ func restore() -> void:
 func _thanks(product: String) -> String:
 	if is_tip(product):
 		return "Thank you so much for the tip ♥"
-	if is_coins(product):
-		return "%d coins added" % int(COIN_PACKS[product][0])
 	return "Thank you for supporting Ringburst!"
 
 
 func _grant(product: String) -> void:
 	if is_tip(product):
 		Profile.add_tip()
-	elif is_coins(product):
-		Profile.add_bought_coins(int(COIN_PACKS[product][0]))
 	else:
 		Profile.set_owned(product, true)
-		# The Complete pack's coins are granted once, ever.
-		if product == "complete_pack" and not Profile.seen("complete_bonus"):
-			Profile.mark_seen("complete_bonus")
-			Profile.add_bought_coins(COMPLETE_COINS)
 
 
 # --- Google Play Billing -------------------------------------------------------

@@ -101,7 +101,7 @@ func header(title: String, caption: String = "", on_back_pressed: Callable = Cal
 	return bar
 
 
-## A centred row of chips (coins) under a header.
+## A centred row of chips under a header.
 func chip_row(chips: Array) -> HBoxContainer:
 	var row: HBoxContainer = UIKit.hbox(12, BoxContainer.ALIGNMENT_CENTER)
 	row.name = "Chips"

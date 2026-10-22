@@ -1,12 +1,8 @@
 product_id,title,description,price_inr,kind
-complete_pack,Complete pack,"No ads, free video rewards, all themes and ring styles, and 1,500 coins.",449,pack
-supporter_pack,Supporter pack,"No banner ads, and revive and double coins without videos.",249,pack
+complete_pack,Complete pack,"No ads, revive without videos, and all themes and ring styles.",449,pack
+supporter_pack,Supporter pack,"No banner ads, and revive without watching a video.",249,pack
 theme_pack,Theme pack,"Eleven colour themes for the whole game, light and dark.",149,pack
 style_pack,Ring styles,Six new looks for your ring and its waves.,149,pack
-coins_500,500 coins,"500 coins for the Forge, ring types, perks and revives.",79,consumable
-coins_1500,"1,500 coins","1,500 coins for the Forge, ring types, perks and revives.",199,consumable
-coins_4000,"4,000 coins","4,000 coins for the Forge, ring types, perks and revives.",449,consumable
-coins_10000,"10,000 coins","10,000 coins for the Forge, ring types, perks and revives.",899,consumable
 tip_10,Tip ₹10,A thank-you to the developer. Opens nothing new.,10,consumable
 tip_20,Tip ₹20,A thank-you to the developer. Opens nothing new.,20,consumable
 tip_30,Tip ₹30,A thank-you to the developer. Opens nothing new.,30,consumable

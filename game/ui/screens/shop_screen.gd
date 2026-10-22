@@ -1,15 +1,15 @@
 extends Screen
 ## The shop, like Single Shot's: every pack with a live preview, its price and
-## whether it's yours (tap for its card), then Coins and the Tip jar as rows
-## that open their own cards, and Restore purchases.
+## whether it's yours (tap for its card), then the Tip jar as a row that opens
+## its own card, and Restore purchases.
 
 var _rows: Dictionary = {}
 var _status: Label
 
 
 func build() -> void:
-	body.add_child(header("Shop", "Packs · coins · tips"))
-	body.add_child(chip_row([UIKit.coin_chip()]))
+	body.add_child(header("Shop", "Packs · tips"))
+	body.add_child(UIKit.gap(6))
 	var scroll: TouchScroll = TouchScroll.new()
 	scroll.name = "Scroll"
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -17,14 +17,13 @@ func build() -> void:
 	var list: VBoxContainer = UIKit.vbox(16)
 	list.name = "List"
 	scroll.set_content(list)
-	list.add_child(UIKit.para("Every world in Ringburst opens by playing.\nThese are extras, and they help me make more.", Style.SIZE_SMALL, Style.MUTED))
+	list.add_child(UIKit.para("Every level in Ringburst opens by playing.\nThese are extras, and they help me make more.", Style.SIZE_SMALL, Style.MUTED))
 	for id: String in Store.PRODUCTS:
 		var row: Button = _product_row(id)
 		list.add_child(row)
 		_rows[id] = row
 
-	list.add_child(UIKit.caption("Coins and thanks", Style.AMBER, Style.SIZE_CAPTION, HORIZONTAL_ALIGNMENT_LEFT))
-	list.add_child(_link_row("coins", "Coins", "Bags of 500 to 10,000 for the Forge · free coins from a video", "Product_coins", func() -> void: app.open(CoinsCard.new())))
+	list.add_child(UIKit.caption("Say thanks", Style.AMBER, Style.SIZE_CAPTION, HORIZONTAL_ALIGNMENT_LEFT))
 	var n: int = Profile.tips_given()
 	list.add_child(_link_row("tips", "Tip jar", "Say thanks, as often as you like" if n == 0 else "You've tipped %d %s. Thank you ♥" % [n, "time" if n == 1 else "times"], "TipJar", func() -> void: app.open(TipCard.new())))
 
@@ -92,7 +91,7 @@ func _product_row(id: String) -> Button:
 	b.name = "Product_" + id
 	b.custom_minimum_size = Vector2(0, 150 if featured else 132)
 	b.focus_mode = Control.FOCUS_ALL
-	_style_row(b, Style.SURFACE.lerp(Style.AMBER, 0.15) if featured else Style.SURFACE, Style.AMBER if featured else Color.TRANSPARENT)
+	_style_row(b, Color(Style.AMBER, 0.1) if featured else Style.SURFACE, Color(Style.AMBER, 0.6) if featured else Color.TRANSPARENT)
 	UIKit.juice(b)
 	b.pressed.connect(func() -> void: _open_product(id))
 	var row: HBoxContainer = UIKit.hbox(18, BoxContainer.ALIGNMENT_BEGIN)

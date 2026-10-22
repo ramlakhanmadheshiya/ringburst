@@ -23,18 +23,10 @@ CURRENCY = "INR"
 
 # One-time packs (kept forever, restorable).
 PACKS = [
-    ("complete_pack", "Complete pack", "No ads, free video rewards, all themes and ring styles, and 1,500 coins.", 449),
-    ("supporter_pack", "Supporter pack", "No banner ads, and revive and double coins without videos.", 249),
+    ("complete_pack", "Complete pack", "No ads, revive without videos, and all themes and ring styles.", 449),
+    ("supporter_pack", "Supporter pack", "No banner ads, and revive without watching a video.", 249),
     ("theme_pack", "Theme pack", "Eleven colour themes for the whole game, light and dark.", 149),
     ("style_pack", "Ring styles", "Six new looks for your ring and its waves.", 149),
-]
-
-# Coin bags (consumable).
-COINS = [
-    ("coins_500", 500, 79),
-    ("coins_1500", 1500, 199),
-    ("coins_4000", 4000, 449),
-    ("coins_10000", 10000, 899),
 ]
 
 TIP_MIN, TIP_MAX, TIP_STEP = 10, 1000, 10
@@ -44,14 +36,6 @@ def products():
     out = []
     for pid, title, desc, price in PACKS:
         out.append({"id": pid, "title": title, "description": desc, "price": price, "kind": "pack"})
-    for pid, amount, price in COINS:
-        out.append({
-            "id": pid,
-            "title": f"{amount:,} coins",
-            "description": f"{amount:,} coins for the Forge, ring types, perks and revives.",
-            "price": price,
-            "kind": "consumable",
-        })
     for r in range(TIP_MIN, TIP_MAX + 1, TIP_STEP):
         out.append({
             "id": f"tip_{r}",

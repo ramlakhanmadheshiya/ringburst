@@ -15,7 +15,7 @@ static var FIELD: Color = Color(1, 1, 1, 0.07)
 static var SURFACE: Color = Color(1, 1, 1, 0.07)
 ## The darker edge under raised surfaces.
 static var LIP: Color = Color("0A0D26")
-## Flat panels: the HUD strip, the daily card.
+## Flat panels: the HUD strip, the world's hero card.
 static var PANEL: Color = Color(1, 1, 1, 0.05)
 static var SHADOW_TILE: Color = Color("10143A")
 ## The accent (named AMBER for history: it is the theme's highlight colour).

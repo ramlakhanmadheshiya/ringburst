@@ -1,35 +1,33 @@
 class_name Director
 extends RefCounted
-## The spawn director: decides what comes in, where and when, from the stage
-## spec and its own seeded Rng only, never from what the player does. So the
-## same stage (or the same day's Daily Run) brings the same shapes in the
-## same order to everyone.
+## The spawn director: decides what comes in, where and when, from the level
+## spec and its own seeded Rng only, never from what the player does. So a
+## level brings the same shapes in the same order every time it's played.
 ##
-## A threat budget fills at a rate that climbs smoothly over the stage
-## (smoothstep from a calm start to a busy end) and breathes in 20-second
-## swells; every 16 s a surge sends a pack from one edge. When the timer runs
-## out the boss arrives and regular spawns drop to a trickle.
+## A threat budget fills at a rate that climbs smoothly over the level's
+## length (smoothstep from a calm start to a busy end) and breathes in
+## 20-second swells; every 16 s a surge sends a small pack from one edge. On a
+## Giant or boss level the big one arrives after a short build-up, and the
+## regular flow drops to a trickle.
 
 const GRACE: float = 2.0
 const SURGE_EVERY: float = 16.0
 const SWELL_PERIOD: float = 20.0
 ## Spawn ring: just outside the visible arena (half-size 360 x 560).
 const EDGE_HALF: Vector2 = Vector2(385.0, 585.0)
-const BOSS_EVERY_ENDLESS: float = 120.0
 
 var spec: Dictionary
 var rng: Rng
 var t: float = 0.0
 var budget: float = 0.0
 var boss_spawned: bool = false
-var bosses_spawned: int = 0
 var _next_type: int = -1
 var _next_surge: float = 14.0
 var _weights: Array = []
 
 
-func _init(stage_spec: Dictionary) -> void:
-	spec = stage_spec
+func _init(level_spec: Dictionary) -> void:
+	spec = level_spec
 	rng = Rng.new(Rng.mix(int(spec.get("seed", 1)), 7))
 	_weights = spec.get("weights", [1.0])
 	if int(spec.get("featured", -1)) >= 0:
@@ -38,70 +36,52 @@ func _init(stage_spec: Dictionary) -> void:
 
 
 func mode() -> String:
-	return str(spec.get("mode", "stage"))
+	return str(spec.get("mode", "level"))
 
 
-func duration() -> float:
-	return float(spec.get("duration", 90.0))
+func length() -> float:
+	return float(spec.get("length", 45.0))
 
 
-## Difficulty now: fixed for a stage, climbing with time in Endless.
 func difficulty() -> float:
-	var d: float = float(spec.get("difficulty", 0.0))
-	if mode() == "endless":
-		return d + t / 40.0
-	return d
+	return float(spec.get("difficulty", 0.0))
+
+
+func boss_at() -> float:
+	return float(spec.get("boss_at", -1.0))
 
 
 func boss_phase() -> bool:
-	return mode() != "endless" and mode() != "tutorial" and t >= duration()
+	return boss_at() >= 0.0 and t >= boss_at()
 
 
 ## The smooth part of the spawn rate (threat points per second): from a calm
-## start to a busy end of the stage, without the swells.
+## start to a busy end of the level, without the swells.
 func base_rate() -> float:
 	var d: float = difficulty()
-	var r0: float = 0.9 + 0.35 * d
-	var r1: float = 2.0 + 0.70 * d
-	var k: float
-	if mode() == "endless":
-		k = clampf(t / 90.0, 0.0, 1.0)
-	else:
-		k = clampf(t / duration(), 0.0, 1.0)
+	var r0: float = 1.4 + 0.35 * d
+	var r1: float = 2.8 + 0.80 * d
+	var k: float = clampf(t / length(), 0.0, 1.0)
 	var smooth: float = k * k * (3.0 - 2.0 * k)
-	var r: float = r0 + (r1 - r0) * smooth
-	if str(spec.get("modifier", "")) == "swarm":
-		r *= 1.5
-	return r
+	return r0 + (r1 - r0) * smooth
 
 
 ## Threat points per second now: the smooth curve breathing in 20-second
-## swells, dropping to a trickle once the boss is here.
+## swells, dropping to a trickle once the Giant or boss is here.
 func rate() -> float:
 	if boss_phase():
-		return (2.0 + 0.70 * difficulty()) * 0.22
-	return base_rate() * (1.0 + 0.3 * sin(TAU * t / SWELL_PERIOD))
+		return (0.9 + 0.30 * difficulty()) * 0.35
+	return base_rate() * (1.0 + 0.25 * sin(TAU * t / SWELL_PERIOD))
 
 
-## Health and speed scaling for shapes spawned now.
+## Shapes are one hit in the first two worlds; from Iron Bloom on they take
+## two plain hits (or one PERFECT), and deeper levels bring them in faster.
 func hp_mult() -> float:
-	var m: float = 1.0 + 0.38 * difficulty()
-	match str(spec.get("modifier", "")):
-		"swarm":
-			m *= 0.7
-		"giants":
-			m *= 1.5
-	return m
+	return 1.0 + 0.15 * maxf(0.0, difficulty() - 1.55)
 
 
 func speed_mult() -> float:
-	var m: float = 1.0 + 0.11 * minf(difficulty(), 10.0)
-	match str(spec.get("modifier", "")):
-		"giants":
-			m *= 0.8
-		"blitz":
-			m *= 1.2
-	return m
+	return 1.05 + 0.12 * minf(difficulty(), 8.0)
 
 
 ## Advances the director by dt and returns spawn requests:
@@ -119,16 +99,9 @@ func step(dt: float) -> Array:
 		return out
 	if featured >= 0 and t < 8.0:
 		return out
-	# Bosses.
-	if mode() == "endless":
-		if t >= BOSS_EVERY_ENDLESS * float(bosses_spawned + 1):
-			var b: Dictionary = EnemyTypes.boss(bosses_spawned % EnemyTypes.BOSSES.size(), difficulty() * 0.6)
-			bosses_spawned += 1
-			out.append({"boss": b, "pos": Vector2(0, -EDGE_HALF.y - 20.0)})
-	elif not boss_spawned and t >= duration():
+	if not boss_spawned and boss_phase() and not (spec.get("boss", {}) as Dictionary).is_empty():
 		boss_spawned = true
-		bosses_spawned = 1
-		out.append({"boss": spec.get("boss", {}), "pos": Vector2(0, -EDGE_HALF.y - 20.0)})
+		out.append({"boss": spec["boss"], "pos": Vector2(0, -EDGE_HALF.y - 20.0)})
 	# Steady flow.
 	budget += rate() * dt
 	if _next_type < 0:
@@ -139,10 +112,10 @@ func step(dt: float) -> Array:
 		out.append(_request(_next_type, edge_point(rng.next_float())))
 		_next_type = rng.weighted(_weights)
 		guard += 1
-	# Surges: a pack from one edge.
+	# Surges: a small pack from one edge.
 	if not boss_phase() and t >= _next_surge:
 		_next_surge += SURGE_EVERY
-		var n: int = 3 + int(difficulty() * 0.7)
+		var n: int = 3 + int(difficulty() * 0.8)
 		var u: float = rng.next_float()
 		var type: int = rng.weighted(_weights)
 		for i: int in n:

@@ -1,8 +1,8 @@
 class_name ProductPreview
 extends Control
 ## A small live picture of what a shop item gives: themes as sky swatches,
-## ring styles as a spinning styled ring, coins as a stack, the Supporter
-## heart, the tip jar, and the Complete pack as a little of everything.
+## ring styles as a spinning styled ring, the Supporter heart, the tip jar,
+## and the Complete pack as a little of everything.
 
 var product: String = ""
 var _t: float = 0.0
@@ -25,17 +25,7 @@ func _draw() -> void:
 	var box: Rect2 = Rect2(o, Vector2(s, s))
 	draw_style_box(UIKit.box(Color(0, 0, 0, 0.28), int(s * 0.26)), box)
 	var c: Vector2 = box.get_center()
-	if product.begins_with("coins_"):
-		var amount: int = int(product.trim_prefix("coins_"))
-		var n: int = 0 if amount <= 500 else (1 if amount <= 1500 else (2 if amount <= 4000 else 3))
-		_art("coin_stack", c + Vector2(0, s * 0.02), s * (0.62 + 0.06 * n))
-		if n >= 2:
-			_art("coin", c + Vector2(s * 0.24, s * 0.2), s * 0.3)
-		if n >= 3:
-			_art("coin", c + Vector2(-s * 0.26, s * 0.22), s * 0.26)
-	elif product == "coins" or product == "free_coins":
-		_art("coin_stack", c, s * 0.66)
-	elif product == "tips":
+	if product == "tips":
 		_art("heart", c, s * 0.6)
 	elif product == "theme_pack":
 		_art("theme", c, s * 0.7)
@@ -53,7 +43,7 @@ func _draw() -> void:
 		_art("heart", c + Vector2(s * 0.24, s * 0.24), s * 0.32)
 	else:
 		_art("ring", c + Vector2(-s * 0.12, -s * 0.06), s * 0.6)
-		_art("coin_stack", c + Vector2(s * 0.2, s * 0.2), s * 0.4)
+		_art("theme", c + Vector2(s * 0.2, s * 0.2), s * 0.4)
 		_art("star", c + Vector2(s * 0.24, -s * 0.24), s * 0.3)
 
 

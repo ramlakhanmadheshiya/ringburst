@@ -2,8 +2,8 @@ extends Node
 ## All ad decisions live here so ads stay polite, like Single Shot:
 ## - a small banner at the bottom of every screen, with layout space reserved
 ##   so it never covers a button (it never shows during the action itself);
-## - a rewarded video only when the player asks for one (revive, double coins,
-##   free coins, a pack trial);
+## - a rewarded video only when the player asks for one (a revive or a pack
+##   trial);
 ## - no interstitials, ever.
 ## The banner loads a fresh ad when the player moves between screens, at most
 ## once every BANNER_REFRESH_SECONDS (AdMob asks for at least 30 s between

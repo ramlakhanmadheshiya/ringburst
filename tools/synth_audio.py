@@ -130,7 +130,6 @@ def sfx():
 
     o = buf(0.06, sr); add_tone(o, sr, 0, 1400, 0.05, 0.6, 0.001, 0.012); add_tone(o, sr, 0, 700, 0.05, 0.3, 0.001, 0.02); S["click"] = o
     o = buf(0.18, sr); add_sweep(o, sr, 0, 420, 900, 0.16, 0.5, 0.08); add_tone(o, sr, 0.03, 1320, 0.12, 0.15, 0.005, 0.05); S["open"] = o
-    o = buf(0.5, sr); add_bell(o, sr, 0, mtof(83), 0.4, 0.5, 0.25); add_bell(o, sr, 0.07, mtof(88), 0.4, 0.5, 0.3); S["coin"] = o
     o = buf(0.8, sr)
     for i, m in enumerate((72, 76, 79, 84)):
         add_bell(o, sr, i * 0.07, mtof(m), 0.6, 0.45, 0.35)
@@ -176,13 +175,6 @@ def sfx():
         add_tone(o, sr, i * 0.05, mtof(m), 0.6, 0.25, 0.01, 0.3, "tri")
     add_noise(o, sr, 0, 0.5, 0.05, 0.2, hp=2, seed=17)
     S["shield"] = o
-    o = buf(0.07, sr); add_tone(o, sr, 0, 2400, 0.06, 0.4, 0.001, 0.02); add_tone(o, sr, 0.02, 3200, 0.05, 0.25, 0.001, 0.015); S["gem"] = o
-    o = buf(0.9, sr)
-    for i, m in enumerate((72, 76, 79, 84, 88)):
-        add_tone(o, sr, i * 0.06, mtof(m), 0.4, 0.3, 0.002, 0.12, "square")
-    add_bell(o, sr, 0.32, mtof(96), 0.5, 0.15, 0.3)
-    S["levelup"] = o
-    o = buf(0.5, sr); add_bell(o, sr, 0, mtof(79), 0.4, 0.4, 0.2); add_bell(o, sr, 0.08, mtof(86), 0.4, 0.45, 0.25); S["upgrade"] = o
     o = buf(1.8, sr)
     add_tone(o, sr, 0, 55, 1.7, 0.6, 0.25, 0.8, "saw", vibrato=1.0)
     add_tone(o, sr, 0, 82.4, 1.7, 0.4, 0.3, 0.7, "saw", vibrato=1.0)

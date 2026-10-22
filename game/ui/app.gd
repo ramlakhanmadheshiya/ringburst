@@ -7,9 +7,8 @@ extends Control
 const SCREENS: Dictionary = {
 	"home": "res://game/ui/screens/home_screen.gd",
 	"worlds": "res://game/ui/screens/worlds_screen.gd",
-	"stages": "res://game/ui/screens/stages_screen.gd",
+	"levels": "res://game/ui/screens/levels_screen.gd",
 	"play": "res://game/ui/screens/play_screen.gd",
-	"forge": "res://game/ui/screens/forge_screen.gd",
 	"shop": "res://game/ui/screens/shop_screen.gd",
 }
 
@@ -56,7 +55,7 @@ func _ready() -> void:
 	_toast_host = _layer("Toasts")
 	_toast_host.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	Profile.achievement_unlocked.connect(func(a: Dictionary) -> void:
-		toast("%s  +%d" % [a["title"], a["reward"]], "trophy", Style.GOLD)
+		toast(str(a["title"]), "trophy", Style.GOLD)
 		Audio.play("unlock", 1.0, -3.0)
 	)
 	_boot()
@@ -91,7 +90,7 @@ func _boot() -> void:
 # --- Screens -----------------------------------------------------------------
 
 ## Shows a screen. Back always goes one step up a fixed chain
-## (run -> its world's stages -> worlds -> home), like Single Shot.
+## (level -> its world's levels -> worlds -> home), like Single Shot.
 func go(name: String, args: Dictionary = {}) -> void:
 	if _busy or not SCREENS.has(name):
 		return
@@ -101,12 +100,10 @@ func go(name: String, args: Dictionary = {}) -> void:
 ## The screen one step "up" from the current one.
 func parent_route() -> Array:
 	match screen_name:
-		"stages":
+		"levels":
 			return ["worlds", {}]
 		"play":
-			if screen != null and screen.args.has("world"):
-				return ["stages", {"world": screen.args["world"]}]
-			return ["home", {}]
+			return ["levels", {"world": screen.args.get("world", 0) if screen != null else 0}]
 	return ["home", {}]
 
 

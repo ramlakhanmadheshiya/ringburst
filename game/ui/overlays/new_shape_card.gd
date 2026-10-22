@@ -1,6 +1,6 @@
 class_name NewShapeCard
 extends Overlay
-## Shown before the first stage of a world: the world's new shape, a little
+## Shown before the first level of a world: the world's new shape, a little
 ## demo of how it moves, and how to beat it. The run waits behind it.
 
 var type: int = 1

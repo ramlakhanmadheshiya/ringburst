@@ -416,10 +416,3 @@ static func _switch_icon(on: bool) -> Texture2D:
 	var tex: ImageTexture = ImageTexture.create_from_image(img)
 	_switches[on] = tex
 	return tex
-
-
-## Coin balance pill; tapping it opens the coin bags.
-static func coin_chip() -> CounterChip:
-	var c: CounterChip = CounterChip.new()
-	c.pressed.connect(func() -> void: App.instance.open(CoinsCard.new()))
-	return c

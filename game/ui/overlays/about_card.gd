@@ -24,7 +24,7 @@ func build() -> void:
 	body.add_child(UIKit.label("Ringburst", Style.SIZE_H1, Style.INK, 700))
 	var version: String = str(ProjectSettings.get_setting("application/config/version", "1.0.0"))
 	body.add_child(UIKit.caption("A one-touch arcade · version %s" % version))
-	body.add_child(UIKit.para("Hold to grow a ring of light, let go to burst it. Catch shapes right on the edge for a PERFECT. 48 stages in 8 worlds with a boss at the end of each, 30 upgrades to combine, Endless, and a new Daily Run every day, the same for everyone.", Style.SIZE_SMALL + 1, Style.INK))
+	body.add_child(UIKit.para("Hold to grow a ring of light, let go to burst it. Catch shapes right on the edge for a PERFECT. 320 levels in 8 worlds, each with one clear task, Giants along the way and a boss at the end of every world.", Style.SIZE_SMALL + 1, Style.INK))
 	body.add_child(UIKit.gap(6))
 	body.add_child(UIKit.caption("Made by"))
 	var me: Button = UIKit.button("Ramlakhan Madheshiya", "ghost", Style.AMBER, 76, 30)

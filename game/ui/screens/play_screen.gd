@@ -1,19 +1,16 @@
 extends Screen
-## A run: the arena under a slim HUD (Pause, score and combo, shields, the
-## stage/boss bar and XP). Hold anywhere to grow the ring, let go to burst.
-## Level-ups pause for an upgrade choice; losing every shield offers one
-## revive; the result card pays out and offers Next, Again, Share.
+## A level: the arena under a slim HUD (Pause, score and combo, shields, and
+## the task bar). Hold anywhere to grow the ring, let go to burst. Losing
+## every shield offers one revive; the result card shows the stars and offers
+## the next level.
 ##
-## args: {"world": w, "stage": k} for the campaign, {"mode": "endless"}, or
-## {"mode": "daily", "date": "YYYY-MM-DD"}.
+## args: {"world": w, "level": k}.
 
 var arena: ArenaView
 var sim: RunSim
 var spec: Dictionary = {}
-var mode: String = "stage"
 var world_idx: int = 0
-var stage_idx: int = 0
-var date_key: String = ""
+var level_idx: int = 0
 var tutorial: Tutorial
 var _score: Label
 var _combo: Label
@@ -34,18 +31,9 @@ func in_game() -> bool:
 
 
 func build() -> void:
-	mode = str(args.get("mode", "stage"))
-	date_key = str(args.get("date", Profile.today_key()))
-	if mode == "stage":
-		world_idx = int(args.get("world", 0))
-		stage_idx = int(args.get("stage", 0))
-		spec = Worlds.stage_spec(world_idx, stage_idx)
-	elif mode == "daily":
-		spec = Worlds.daily_spec(date_key)
-		world_idx = int(spec["world"])
-	else:
-		spec = Worlds.endless_spec(int(Time.get_unix_time_from_system()) % 100000 + 1)
-		world_idx = posmod(Profile.unlocked_world_count() - 1, Worlds.count())
+	world_idx = int(args.get("world", 0))
+	level_idx = int(args.get("level", 0))
+	spec = Worlds.level_spec(world_idx, level_idx)
 	AdManager.suppress_banner(true)
 	arena = ArenaView.new()
 	arena.name = "Arena"
@@ -53,37 +41,34 @@ func build() -> void:
 	arena.set_world(world_idx)
 	add_child(arena)
 	move_child(arena, 0)
-	arena.choosing.connect(_on_choosing)
 	arena.finished.connect(_on_finished)
 	arena.sim_event.connect(_on_event)
 	_build_hud()
-	if mode == "stage":
-		Profile.set_last_stage(spec["id"])
-	var w: int = world_idx
-	Audio.world_music(w)
-	if mode == "stage" and world_idx == 0 and stage_idx == 0 and not Profile.seen("tutorial"):
+	Profile.set_last_level(spec["id"])
+	Audio.world_music(world_idx)
+	if world_idx == 0 and level_idx == 0 and not Profile.seen("tutorial"):
 		_start_tutorial()
 	else:
 		_start_run()
-		if mode == "stage" and stage_idx == 0 and world_idx > 0 and not Profile.seen("intro_" + str(Worlds.world(world_idx)["id"])):
+		if level_idx == 0 and world_idx > 0 and not Profile.seen("intro_" + str(Worlds.world(world_idx)["id"])):
 			_show_new_shape.call_deferred()
 
 
 func _exit_tree() -> void:
-	# A new run replacing this one keeps the banner hidden.
+	# A new level replacing this one keeps the banner hidden.
 	if app == null or app.screen == self or app.screen_name != "play":
 		AdManager.suppress_banner(false)
 
 
 func _build_hud() -> void:
-	_hud = UIKit.vbox(6)
+	_hud = UIKit.vbox(10)
 	_hud.name = "HUD"
 	_hud.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	body.add_child(_hud)
 	var top: HBoxContainer = UIKit.hbox(12, BoxContainer.ALIGNMENT_BEGIN)
 	top.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	top.custom_minimum_size.y = 92
-	_pause_btn = UIKit.icon_button("pause", Style.TOP_BUTTON)
+	top.custom_minimum_size.y = 84
+	_pause_btn = UIKit.icon_button("pause")
 	_pause_btn.name = "Pause"
 	_pause_btn.pressed.connect(pause)
 	top.add_child(_pause_btn)
@@ -91,8 +76,8 @@ func _build_hud() -> void:
 	mid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	mid.alignment = BoxContainer.ALIGNMENT_CENTER
 	mid.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	mid.add_child(UIKit.caption(_where_text(), accent(), 17))
-	_score = UIKit.label("0", 46, Style.INK, 800)
+	mid.add_child(UIKit.caption(where_text(), Style.MUTED, 16))
+	_score = UIKit.label("0", 40, Style.INK, 700)
 	_score.name = "Score"
 	mid.add_child(_score)
 	top.add_child(mid)
@@ -105,19 +90,20 @@ func _build_hud() -> void:
 	_bars = HudBars.new()
 	_bars.name = "Bars"
 	_hud.add_child(_bars)
-	_combo = UIKit.label("", 26, Color("FFE98A") if Style.DARK else Color("A86A00"), 800)
+	_combo = UIKit.label("", 24, Color("FFE98A") if Style.DARK else Color("A86A00"), 700)
 	_combo.name = "Combo"
-	_combo.custom_minimum_size.y = 34
+	_combo.custom_minimum_size.y = 32
 	_hud.add_child(_combo)
 
 
-func _where_text() -> String:
-	match mode:
-		"daily":
-			return "Daily run · " + date_key
-		"endless":
-			return "Endless"
-	return "%s · Stage %d" % [Worlds.world(world_idx)["name"], stage_idx + 1]
+## "Neon Shore · Level 12".
+func where_text() -> String:
+	return "%s · Level %d" % [Worlds.world(world_idx)["name"], level_idx + 1]
+
+
+## The level's task in words, e.g. "Burst 12 shapes".
+func task_text() -> String:
+	return Worlds.goal_text(spec["goal"], str((spec["boss"] as Dictionary).get("name", "")))
 
 
 func _fit() -> void:
@@ -128,12 +114,11 @@ func _fit() -> void:
 
 
 func _start_run() -> void:
-	sim = RunSim.new(spec, Profile.run_stats())
+	sim = RunSim.new(spec)
 	_finished = false
 	arena.start(sim)
 	_bars.sim = sim
 	_bars.accent = accent()
-	_bars.gem = arena.pal["gem"]
 	_refresh_lives()
 
 
@@ -143,19 +128,18 @@ func _start_tutorial() -> void:
 	add_child(tutorial)
 	var tspec: Dictionary = spec.duplicate()
 	tspec["mode"] = "tutorial"
-	var stats: RunStats = RunStats.make()
-	stats.max_lives = 3
-	sim = RunSim.new(tspec, stats)
+	sim = RunSim.new(tspec)
 	arena.start(sim)
 	_bars.sim = sim
 	_bars.accent = accent()
-	_bars.gem = arena.pal["gem"]
+	_bars.visible = false
 	_refresh_lives()
 	tutorial.begin(sim)
 	tutorial.done.connect(func() -> void:
 		Profile.mark_seen("tutorial")
 		tutorial.queue_free()
 		tutorial = null
+		_bars.visible = true
 		_start_run()
 	)
 
@@ -204,11 +188,8 @@ func _refresh_lives() -> void:
 
 
 func _on_event(ev: Dictionary) -> void:
-	match str(ev["t"]):
-		"damage":
-			_refresh_lives()
-		"won", "lost":
-			pass
+	if str(ev["t"]) == "damage":
+		_refresh_lives()
 
 
 func _unhandled_input(e: InputEvent) -> void:
@@ -220,7 +201,7 @@ func _unhandled_input(e: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 
 
-## Back pauses a run (and resumes from the pause card).
+## Back pauses a level (and resumes from the pause card).
 func on_back() -> bool:
 	if _finished:
 		return false
@@ -248,29 +229,13 @@ func _notification(what: int) -> void:
 			pause()
 
 
-func _on_choosing() -> void:
-	if tutorial != null:
-		sim.choose(0)
-		return
-	arena.paused = true
-	var o: UpgradeCard = UpgradeCard.new()
-	o.play = self
-	o.closed.connect(func() -> void:
-		if is_instance_valid(self) and not _finished:
-			arena.paused = false
-			if sim.state == RunSim.State.CHOOSING:
-				_on_choosing.call_deferred()
-	)
-	app.open(o)
-
-
 func _on_finished(won: bool) -> void:
 	if tutorial != null:
 		# Tutorial runs can't be lost: top the shields back up.
 		sim.revive()
 		arena._over = false
 		return
-	if not won and sim.revives == 0 and mode != "tutorial":
+	if not won and sim.revives == 0:
 		arena.paused = true
 		var r: ReviveCard = ReviveCard.new()
 		r.play = self
@@ -294,21 +259,14 @@ func _finish(won: bool) -> void:
 		return
 	_finished = true
 	arena.paused = false
-	var reward: Dictionary
-	match mode:
-		"daily":
-			reward = Profile.finish_daily(date_key, sim)
-		"endless":
-			reward = Profile.finish_endless(sim)
-		_:
-			reward = Profile.finish_stage(spec["id"], sim)
+	var result: Dictionary = Profile.finish_level(spec["id"], sim)
 	await get_tree().create_timer(1.1 if won else 0.6).timeout
 	if not is_inside_tree():
 		return
 	AdManager.suppress_banner(false)
 	var card: ResultCard = ResultCard.new()
 	card.play = self
-	card.reward = reward
+	card.result = result
 	app.open(card)
 
 
@@ -316,28 +274,23 @@ func restart() -> void:
 	app.go("play", args)
 
 
-## Next stage (or Home after a daily / endless run, or the worlds list at the end).
+## The next level (or the world's levels if it isn't open yet).
 func go_next() -> void:
-	if mode != "stage":
-		app.go("home")
-		return
 	var w: int = world_idx
-	var k: int = stage_idx + 1
-	if k >= Worlds.STAGES_PER_WORLD:
+	var k: int = level_idx + 1
+	if k >= Worlds.LEVELS_PER_WORLD:
 		w += 1
 		k = 0
-	if w >= Worlds.count() or not Profile.stage_unlocked(w, k):
-		app.go("stages", {"world": world_idx})
+	if w >= Worlds.count() or not Profile.level_unlocked(w, k):
+		app.go("levels", {"world": world_idx})
 		return
-	app.go("play", {"world": w, "stage": k})
+	app.go("play", {"world": w, "level": k})
 
 
 func share_info() -> Dictionary:
-	var stars: int = Economy.star_count(sim.stars_mask())
 	return {
-		"mode": mode, "id": spec.get("id", ""), "date": date_key, "won": sim.state == RunSim.State.WON,
-		"where": _where_text(), "world": world_idx, "score": sim.score, "combo": sim.best_combo, "kills": sim.kills,
-		"perfects": sim.perfects, "stars": stars, "mask": sim.stars_mask(), "time": sim.t,
-		"time_text": "%d:%02d" % [int(sim.t) / 60, int(sim.t) % 60], "upgrades": sim.stats.levels.duplicate(),
-		"modifier": str(spec.get("modifier", "")), "ring": Profile.ring(),
+		"id": spec.get("id", ""), "won": sim.state == RunSim.State.WON, "where": where_text(), "task": task_text(),
+		"world": world_idx, "level": level_idx, "score": sim.score, "combo": sim.best_combo, "kills": sim.kills,
+		"perfects": sim.perfects, "stars": sim.stars(), "time": sim.t,
+		"time_text": "%d:%02d" % [int(sim.t) / 60, int(sim.t) % 60],
 	}

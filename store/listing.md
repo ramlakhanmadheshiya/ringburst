@@ -20,10 +20,10 @@ Hold anywhere and a ring grows from your core. Let go, and it bursts outward as 
 THE PERFECT RELEASE
 Let go while a shape sits right on the ring's edge for a PERFECT: double damage, sparks that jump to nearby shapes, a flash of slow motion, and your combo climbs a note higher. Combos multiply your score.
 
-A RUN IS A ROGUELITE
-Burst shapes drop gems. Collect them to level up and choose 1 of 3 upgrades from a pool of 30: Echo, Frost Ring, Chain Lightning, Ricochet, Satellites and more. Some pairs unlock powerful synergies.
+ONE TASK PER LEVEL
+Every level shows its task before it starts: burst 12 shapes, land 5 PERFECTs, survive 30 seconds, reach a combo of 6, or hunt down the world's new shape. Levels are quick, about 15 to 45 seconds each, and open one at a time.
 
-8 WORLDS, 48 STAGES, A BOSS AT THE END OF EACH
+8 WORLDS, 320 LEVELS, A BOSS AT THE END OF EACH
 Every world has its own colours and music and brings one new shape:
 • Neon Shore: drifters wash in from every edge
 • Pulse City: dashers wait, flash, then lunge
@@ -34,22 +34,22 @@ Every world has its own colours and music and brings one new shape:
 • Phantom Rift: phantoms fade in and out of reach
 • Event Horizon: brutes, armoured and relentless
 
-Survive until the boss arrives, then beat it. Earn stars for clearing a stage, for taking no hits, and for reaching its combo target.
+Giants wait at levels 10, 20 and 30 of every world, and a boss guards level 40: Monolith, Lancer, Bastion, Hydra, Carousel, Hive Queen, Wraith and Eclipse. Beat it to open the next world.
 
-THE FORGE
-Every run pays coins, win or lose. Spend them on permanent upgrades, new ring types that change how you play, and starting perks.
-
-DAILY RUN AND ENDLESS
-A new Daily Run every day, the same for everyone, with its own twist. Keep your streak going. Or play Endless and see how long you last.
+THREE SHIELDS, THREE STARS
+You have three shields. Every shield you still have when the task is done is a star, so a clean level earns all three. Collect awards for your milestones along the way.
 
 FAIR AND CALM ABOUT ADS
-• No full-screen ads between runs
+• No full-screen ads between levels
 • No ads while you play
-• Optional videos only when you choose them (a revive, double coins)
+• Optional videos only when you choose them (a revive, or an hour's try of a theme or ring style)
 • Progress stays on your device, with no account to make
 
-SHARE YOUR BEST RUNS
-After a run, save or share a picture of it with your score, combo and upgrades, and ask your friends to beat it.
+MAKE IT YOURS
+Eleven colour themes, six ring styles, and Auto, Dark or Light appearance.
+
+SHARE YOUR LEVELS
+After a level, save or share a picture of it with the task, your score and stars, and ask your friends to beat it.
 
 Made with Godot by Ramlakhan Madheshiya. Questions or ideas: support@theramlakhan.com
 
@@ -76,9 +76,9 @@ Made with Godot by Ramlakhan Madheshiya. Questions or ideas: support@theramlakha
 
 1. `01_home.png`: The home screen with the game's title, a live demo and a Play button.
 2. `02_shore.png`: A ring of light growing from the core as drifters close in, in Neon Shore.
-3. `03_fracture.png`: A charged ring among hexagonal splitters in Fracture.
-4. `04_boss.png`: A boss fight in The Hive, with the boss's health bar at the top.
-5. `05_upgrades.png`: The level-up card offering three upgrades.
-6. `06_result.png`: The stage clear card with three stars, score and coins.
+3. `03_fracture.png`: A PERFECT burst among hexagonal splitters in Fracture.
+4. `04_boss.png`: The Hive Queen boss fight, with the boss's health bar at the top.
+5. `05_levels.png`: The 40 levels of Fracture, with stars on the cleared ones.
+6. `06_result.png`: The level clear card with three stars and the score.
 7. `07_worlds.png`: The list of eight worlds, each in its own colours.
-8. `08_forge.png`: The Forge with permanent upgrades bought with coins.
+8. `08_level_card.png`: The card before a level, showing its task: beat the Giant Splitter.

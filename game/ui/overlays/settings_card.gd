@@ -93,7 +93,7 @@ func build() -> void:
 	var version: String = str(ProjectSettings.get_setting("application/config/version", "1.0.0"))
 	body.add_child(UIKit.caption("Ringburst %s · made with Godot" % version, Style.MUTED, 16))
 	if _confirm_reset == false and app.screen != null and not app.screen.in_game():
-		body.add_child(UIKit.para("Reset keeps your settings, packs and bought coins.", Style.SIZE_CAPTION))
+		body.add_child(UIKit.para("Reset keeps your settings and packs.", Style.SIZE_CAPTION))
 
 
 ## A card showing the current colour theme or lantern style; opens its picker.

@@ -10,7 +10,7 @@ const SECTIONS: Array = [
 	["Engine", [["Godot Engine 4.7", "MIT licence. godotengine.org", "https://godotengine.org/"]]],
 	["Type", [["Outfit", "By the Outfit Project Authors. SIL Open Font License 1.1.", ""]]],
 	["Icons", [["Lucide", "By the Lucide contributors. ISC licence. lucide.dev", "https://lucide.dev/"],
-		["Coin, star, ring and other game icons", "Drawn for Ringburst and Word Lantern.", ""]]],
+		["Star, ring and other game icons", "Drawn for Ringburst and Word Lantern.", ""]]],
 	["Sound and music", [["Synthesised for Ringburst", "Every sound and all ten music loops are generated in code for this game, no samples.", ""]]],
 	["Ads and purchases, on Android", [
 		["Godot AdMob Plugin", "By Poing Studios. MIT licence.", ""],

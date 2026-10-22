@@ -5,11 +5,10 @@ extends Overlay
 
 const PAGES: Array[Dictionary] = [
 	{"demo": "hold", "title": "Hold, then let go", "text": "Hold anywhere and a ring grows from your core. Let go and it bursts outward as a shockwave that hits every shape inside the ring. A bigger ring reaches further, but while it grows you aren't attacking."},
-	{"demo": "perfect", "title": "PERFECT", "text": "Let go while a shape sits right on the ring's edge (it lights up white) for a PERFECT: double damage, a spark that jumps to nearby shapes, and +1 combo. Your combo multiplies your score, up to x4. A burst that hits nothing breaks it."},
-	{"demo": "core", "title": "Guard your core", "text": "A shape that touches your core breaks a shield and shoves everything back. Lose every shield and the run ends (you can revive once). Some upgrades bring shields back."},
-	{"demo": "gems", "title": "Gems and upgrades", "text": "Burst shapes drop gems; your waves pull them in. Fill the XP bar to level up and pick 1 of 3 upgrades: Echo, Frost Ring, Chain Lightning and 23 more. Some pairs unlock a powerful synergy."},
-	{"demo": "shapes", "title": "Eight shapes, eight worlds", "text": "Each world brings one new shape with its own trick, taught before its first stage. Survive a stage until its Guardian or boss arrives, then beat it. Stars: clear, take no hits, and reach the combo goal."},
-	{"demo": "modes", "title": "Forge, Daily and Endless", "text": "Every run pays coins, win or lose. Spend them in the Forge on permanent upgrades, ring types and starting perks. The Daily Run is built from the date, the same for everyone. Endless keeps going until you fall."},
+	{"demo": "perfect", "title": "PERFECT", "text": "Let go while a shape sits right on the ring's edge (it lights up white) for a PERFECT: double damage, a spark that jumps to a nearby shape, and +1 combo. PERFECTs in a row build your combo; a burst that hits nothing breaks it."},
+	{"demo": "core", "title": "Guard your core", "text": "A shape that touches your core breaks one of your three shields. Lose all three and the level is lost (you can revive once)."},
+	{"demo": "task", "title": "One task per level", "text": "Every level gives you one task: burst some shapes, land PERFECTs, survive, build a combo, or beat a Giant or a boss. Finish it to clear the level. Every shield you still have is a star."},
+	{"demo": "shapes", "title": "Eight worlds", "text": "Each world has 40 levels and brings one new shape with its own trick, shown before its first level. Giants wait at levels 10, 20 and 30, and the world's boss at level 40. Beat it to open the next world."},
 ]
 
 var _index: int = 0
@@ -50,7 +49,7 @@ func build() -> void:
 			Save.data["seen"].erase("tutorial")
 			Save.mark_dirty()
 			app.close_overlays()
-			app.go("play", {"world": 0, "stage": 0})
+			app.go("play", {"world": 0, "level": 0})
 		)
 		body.add_child(replay)
 	_show(0)
@@ -64,18 +63,12 @@ func _show(i: int) -> void:
 	var demo_name: String = str(page["demo"])
 	if demo_name == "shapes":
 		_holder.add_child(ShapeGrid.new())
-	elif demo_name == "modes":
-		var row: HBoxContainer = UIKit.hbox(26)
-		row.custom_minimum_size.y = 200
-		for a: String in ["hammer", "calendar", "infinity"]:
-			row.add_child(UIKit.art_rect(a, 110))
-		_holder.add_child(row)
 	else:
 		var demo: ShapeDemo = ShapeDemo.new(demo_name, 0)
 		demo.accent = Style.AMBER
 		demo.custom_minimum_size = Vector2(0, 260)
 		_holder.add_child(demo)
-	_holder.add_child(UIKit.label(page["title"], Style.SIZE_H2, Style.AMBER, 700))
+	_holder.add_child(UIKit.label(page["title"], Style.SIZE_H2, Style.AMBER, 600))
 	_holder.add_child(UIKit.para(page["text"], Style.SIZE_BODY - 3, Style.INK))
 	_prev.disabled = _index == 0
 	_next.text = "Got it" if _index == PAGES.size() - 1 else "Next"

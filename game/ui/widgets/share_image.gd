@@ -1,8 +1,8 @@
 class_name ShareImage
 extends Control
-## The picture players share after a run, like Single Shot's: a burst frozen
-## in the world's colours, the score and best combo, the stars (campaign),
-## the upgrades that made the run, and a QR code and link to the game.
+## The picture players share after a level, like Single Shot's: a burst
+## frozen in the world's colours, the score, the stars and the level's task,
+## and a QR code and link to the game.
 ## Rendered off-screen at 1080 x 1350 (4:5, the shape chat apps show best).
 
 const SIZE: Vector2i = Vector2i(1080, 1350)
@@ -54,37 +54,22 @@ func _ready() -> void:
 	icon.size = Vector2(104, 104)
 	add_child(icon)
 	_label("Ringburst", 60, ink, 800, Vector2(196, 72), Vector2(480, 80))
-	var mode: String = str(info.get("mode", "stage"))
-	var head: String = "Daily Run" if mode == "daily" else ("Endless" if mode == "endless" else ("Stage clear" if bool(info.get("won", false)) else "Run"))
+	var head: String = "Level clear" if bool(info.get("won", false)) else "Level %d" % (int(info.get("level", 0)) + 1)
 	_label(head, 36, accent, 800, Vector2(560, 66), Vector2(448, 50), HORIZONTAL_ALIGNMENT_RIGHT)
-	var sub: String = str(info.get("date", "")) if mode == "daily" else (str(info.get("time_text", "")) if mode == "endless" else str(info.get("where", "")))
+	var sub: String = str(info.get("where", ""))
 	_label(sub, 28, muted, 600, Vector2(460, 116), Vector2(548, 44), HORIZONTAL_ALIGNMENT_RIGHT)
 	# Score block under the burst.
 	_label(_thousands(int(info.get("score", 0))), 118, ink, 800, Vector2(0, 738), Vector2(1080, 150))
 	_label("POINTS", 26, muted, 700, Vector2(0, 892), Vector2(1080, 40))
 	var stats: String = "%d combo  ·  %d perfects  ·  %d shapes" % [int(info.get("combo", 0)), int(info.get("perfects", 0)), int(info.get("kills", 0))]
 	_label(stats, 32, ink, 600, Vector2(0, 940), Vector2(1080, 50))
-	if mode == "stage":
+	if bool(info.get("won", false)):
 		var stars: StarRow = StarRow.new()
 		stars.position = Vector2(0, 990)
 		stars.size = Vector2(1080, 110)
 		add_child(stars)
-		stars.show_now(int(info.get("mask", 0)))
-	elif mode == "daily":
-		var mod: String = str(info.get("modifier", ""))
-		if Worlds.MODIFIERS.has(mod):
-			_label("Today: " + str(Worlds.MODIFIERS[mod]["name"]), 34, accent, 700, Vector2(0, 1010), Vector2(1080, 56))
-	# The upgrades that made the run.
-	var ups: Dictionary = info.get("upgrades", {})
-	var ids: Array = ups.keys()
-	var n: int = mini(ids.size(), 9)
-	var x0: float = 540.0 - float(n) * 46.0
-	for i: int in n:
-		var id: String = ids[i]
-		var ic: TextureRect = UIKit.icon_rect(str(Upgrades.def(id).get("icon", "zap")), 56, accent)
-		ic.position = Vector2(x0 + float(i) * 92.0 + 18.0, 1112)
-		ic.size = Vector2(56, 56)
-		add_child(ic)
+		stars.show_now(int(info.get("stars", 0)))
+	_label(str(info.get("task", "")), 34, accent, 700, Vector2(0, 1112), Vector2(1080, 56))
 	_label("Can you beat it?", 36, ink, 700, Vector2(72, 1236), Vector2(760, 50), HORIZONTAL_ALIGNMENT_LEFT)
 	_label(SITE, 30, accent, 700, Vector2(72, 1282), Vector2(760, 44), HORIZONTAL_ALIGNMENT_LEFT)
 	var qr: TextureRect = TextureRect.new()

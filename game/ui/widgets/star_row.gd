@@ -1,7 +1,7 @@
 class_name StarRow
 extends Control
 ## Three stars that pop in one after another with rising notes (result card).
-## Each star is its own goal (clear, no damage, combo), so they light by mask.
+## The first `count` light up: one for every shield left at the end.
 
 var _shown: Array[float] = [0.0, 0.0, 0.0]
 var _mask: int = 0
@@ -13,14 +13,14 @@ func _init() -> void:
 
 
 ## Shows the stars at once, without animation (for the share picture).
-func show_now(mask: int) -> void:
-	_mask = mask
+func show_now(count: int) -> void:
+	_mask = (1 << clampi(count, 0, 3)) - 1
 	_shown = [1.0, 1.0, 1.0]
 	queue_redraw()
 
 
-func play(mask: int) -> void:
-	_mask = mask
+func play(count: int) -> void:
+	_mask = (1 << clampi(count, 0, 3)) - 1
 	var lit: int = 0
 	for i: int in 3:
 		var tw: Tween = create_tween()

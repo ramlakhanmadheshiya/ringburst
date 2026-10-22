@@ -1,7 +1,8 @@
 class_name WorldCard
 extends Button
 ## A world on the worlds list, painted in its own colours: number, name,
-## tagline, its new shape, stars and progress, or what opens it when locked.
+## tagline, its new shape, levels cleared and stars, or what opens it when
+## locked.
 
 var world: int = 0
 var clears: int = 0
@@ -62,10 +63,10 @@ func _draw() -> void:
 		var bw: float = size.x - pad - 330.0
 		draw_style_box(UIKit.box(Color(ink, 0.12), 3, Color.TRANSPARENT, 0, Vector2.ZERO), Rect2(pad, by - 3, bw, 6))
 		if clears > 0:
-			draw_style_box(UIKit.box(accent, 3, Color.TRANSPARENT, 0, Vector2.ZERO), Rect2(pad, by - 3, maxf(6.0, bw * clears / float(Worlds.STAGES_PER_WORLD)), 6))
+			draw_style_box(UIKit.box(accent, 3, Color.TRANSPARENT, 0, Vector2.ZERO), Rect2(pad, by - 3, maxf(6.0, bw * clears / float(Worlds.LEVELS_PER_WORLD)), 6))
 		var f: Font = UIKit.font(600)
-		draw_string(f, Vector2(pad + bw + 16, by + 8), "%d/%d" % [clears, Worlds.STAGES_PER_WORLD], HORIZONTAL_ALIGNMENT_LEFT, -1, 20, muted)
-		draw_texture_rect(UIKit.art("star"), Rect2(pad + bw + 70, by - 12, 24, 24), false)
-		draw_string(f, Vector2(pad + bw + 100, by + 8), "%d/18" % stars, HORIZONTAL_ALIGNMENT_LEFT, -1, 20, muted)
+		draw_string(f, Vector2(pad + bw + 16, by + 8), "%d/%d" % [clears, Worlds.LEVELS_PER_WORLD], HORIZONTAL_ALIGNMENT_LEFT, -1, 20, muted)
+		draw_texture_rect(UIKit.art("star"), Rect2(pad + bw + 82, by - 12, 24, 24), false)
+		draw_string(f, Vector2(pad + bw + 112, by + 8), "%d" % stars, HORIZONTAL_ALIGNMENT_LEFT, -1, 20, muted)
 	else:
-		draw_string(UIKit.font(600), Vector2(pad, by + 7), "6 stages · boss: %s" % EnemyTypes.BOSSES[world]["name"], HORIZONTAL_ALIGNMENT_LEFT, -1, 19, Color(Style.INK, 0.35))
+		draw_string(UIKit.font(600), Vector2(pad, by + 7), "%d levels · boss: %s" % [Worlds.LEVELS_PER_WORLD, EnemyTypes.BOSSES[world]["name"]], HORIZONTAL_ALIGNMENT_LEFT, -1, 19, Color(Style.INK, 0.35))

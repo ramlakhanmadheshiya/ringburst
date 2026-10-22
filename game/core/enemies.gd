@@ -11,23 +11,23 @@ enum { DRIFTER, DASHER, SHIELDED, SPLITTER, ORBITER, SPAWNER, PHASER, HEAVY, MIN
 ## sides: 0 = circle, 3 = triangle, 4 = square/diamond...
 ## cost: threat points the spawn director pays for one.
 const TYPES: Array[Dictionary] = [
-	{"id": "drifter", "name": "Drifter", "sides": 3, "radius": 21.0, "hp": 1.0, "speed": 72.0, "cost": 1.0, "score": 10, "xp": 1,
+	{"id": "drifter", "name": "Drifter", "sides": 3, "radius": 21.0, "hp": 1.0, "speed": 72.0, "cost": 1.0, "score": 10,
 		"tip": "Drifts straight at your core. One wave pops it."},
-	{"id": "dasher", "name": "Dasher", "sides": 4, "radius": 20.0, "hp": 1.0, "speed": 48.0, "cost": 1.6, "score": 15, "xp": 2,
+	{"id": "dasher", "name": "Dasher", "sides": 4, "radius": 20.0, "hp": 1.0, "speed": 48.0, "cost": 1.6, "score": 15,
 		"tip": "Stops, flashes, then dashes. Release as it lands on your ring."},
-	{"id": "shielded", "name": "Warden", "sides": 4, "radius": 23.0, "hp": 2.0, "speed": 46.0, "cost": 2.3, "score": 25, "xp": 3,
+	{"id": "shielded", "name": "Warden", "sides": 4, "radius": 23.0, "hp": 2.0, "speed": 46.0, "cost": 2.3, "score": 25,
 		"tip": "Its shield shrugs off plain waves. Break it with a PERFECT release."},
-	{"id": "splitter", "name": "Splitter", "sides": 6, "radius": 26.0, "hp": 2.0, "speed": 44.0, "cost": 2.4, "score": 20, "xp": 2,
+	{"id": "splitter", "name": "Splitter", "sides": 6, "radius": 26.0, "hp": 2.0, "speed": 44.0, "cost": 2.4, "score": 20,
 		"tip": "Bursts into three quick minis. Keep a little reach in reserve."},
-	{"id": "orbiter", "name": "Orbiter", "sides": 0, "radius": 19.0, "hp": 1.5, "speed": 36.0, "cost": 1.9, "score": 20, "xp": 2,
+	{"id": "orbiter", "name": "Orbiter", "sides": 0, "radius": 19.0, "hp": 1.5, "speed": 36.0, "cost": 1.9, "score": 20,
 		"tip": "Spirals around you as it closes in. Its distance barely changes: easy to catch on the edge."},
-	{"id": "spawner", "name": "Hatcher", "sides": 5, "radius": 29.0, "hp": 4.0, "speed": 50.0, "cost": 3.2, "score": 40, "xp": 4,
+	{"id": "spawner", "name": "Hatcher", "sides": 5, "radius": 29.0, "hp": 4.0, "speed": 50.0, "cost": 3.2, "score": 40,
 		"tip": "Parks at long range and hatches minis. Charge a big ring to reach it."},
-	{"id": "phaser", "name": "Phantom", "sides": 7, "radius": 20.0, "hp": 1.0, "speed": 64.0, "cost": 2.0, "score": 25, "xp": 3,
+	{"id": "phaser", "name": "Phantom", "sides": 7, "radius": 20.0, "hp": 1.0, "speed": 64.0, "cost": 2.0, "score": 25,
 		"tip": "Fades in and out. Waves pass through it while it's faded."},
-	{"id": "heavy", "name": "Brute", "sides": 8, "radius": 33.0, "hp": 3.0, "speed": 32.0, "cost": 4.0, "score": 60, "xp": 5,
-		"tip": "Armoured and hard to push back. Perfects and Pierce cut through."},
-	{"id": "mini", "name": "Mini", "sides": 3, "radius": 13.0, "hp": 0.5, "speed": 92.0, "cost": 0.5, "score": 4, "xp": 0,
+	{"id": "heavy", "name": "Brute", "sides": 8, "radius": 33.0, "hp": 3.0, "speed": 32.0, "cost": 4.0, "score": 60,
+		"tip": "Armoured and hard to push back. A PERFECT cuts right through."},
+	{"id": "mini", "name": "Mini", "sides": 3, "radius": 13.0, "hp": 0.5, "speed": 92.0, "cost": 0.5, "score": 4,
 		"tip": "Small and quick."},
 ]
 
@@ -47,8 +47,8 @@ const HEAVY_ARMOUR: float = 0.3
 const HEAVY_KB_RESIST: float = 0.7
 const SPLIT_CHILDREN: int = 3
 
-## World bosses (one per world, the last stage). The other stages of a world
-## end with a Guardian: a giant version of the world's new shape.
+## World bosses (one per world, its last level). Levels 10, 20 and 30 of a
+## world end with a Giant: a big version of the world's new shape.
 ## hold: distance at which the boss stops and fights; orbit: angular speed while
 ## holding; lunge: [every, speed] (it lunges in, then backs off); phase: phases
 ## like a Phantom; shield: a shield (needs a perfect) that returns every N s;
@@ -77,13 +77,13 @@ static func info(type: int) -> Dictionary:
 	return TYPES[clampi(type, 0, TYPES.size() - 1)]
 
 
-## The giant that ends stages 1-5 of a world: its new shape, grown up.
+## The Giant of levels 10, 20 and 30: the world's new shape, grown up.
 static func guardian(world: int, difficulty: float) -> Dictionary:
 	var t: Dictionary = info(world)
 	var lunge: Array = [3.8, 330.0] if world == DASHER else [0.0, 0.0]
 	return {
 		"name": "Giant " + str(t["name"]), "sides": int(t["sides"]), "radius": float(t["radius"]) * 2.1,
-		"hp": 12.0 + 3.5 * difficulty, "speed": 34.0, "hold": 260.0, "orbit": ORBIT_SPIN * 0.5 if world == ORBITER else 0.0,
+		"hp": 10.0 + 2.2 * difficulty, "speed": 34.0, "hold": 260.0, "orbit": ORBIT_SPIN * 0.5 if world == ORBITER else 0.0,
 		"emit": [world if world != SPAWNER else MINI, 5.0 - minf(2.0, difficulty * 0.25), 2 if world != SPAWNER else 3],
 		"lunge": lunge, "phase": world == PHASER, "shield": 6.0 if world == SHIELDED else 0.0,
 		"split": 6.0 + difficulty if world == SPLITTER else 0.0, "armour": 0.3 if world == HEAVY else 0.0,
@@ -91,9 +91,9 @@ static func guardian(world: int, difficulty: float) -> Dictionary:
 	}
 
 
-## The world boss, scaled a little with how deep the stage is.
+## The world boss, scaled a little with how deep the level is.
 static func boss(world: int, difficulty: float) -> Dictionary:
 	var b: Dictionary = BOSSES[clampi(world, 0, BOSSES.size() - 1)].duplicate(true)
-	b["hp"] = float(b["hp"]) * (1.0 + 0.06 * difficulty)
+	b["hp"] = float(b["hp"]) * 0.7 * (1.0 + 0.05 * difficulty)
 	b["guardian"] = false
 	return b
