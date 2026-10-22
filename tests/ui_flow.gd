@@ -324,17 +324,61 @@ func _shop() -> void:
 	await _wait(0.3)
 	_press(app.screen, "Product_supporter_pack")
 	await _wait(0.5)
+	t.ok(_find(app.top_overlay(), "RefundNote") != null, "the pack card says purchases can't be refunded")
 	_press(app.top_overlay(), "Buy")
 	await _wait(0.4)
 	t.ok(Profile.is_supporter(), "buying the Supporter pack")
 	t.eq(AdManager.banner_height, 0.0, "Supporters see no banner")
 	app.close_overlays()
 	await _wait(0.3)
+	var note: Label = _find(app.screen, "RefundNote") as Label
+	t.ok(note != null and note.text == UIKit.REFUND_NOTE, "the shop says purchases can't be refunded")
+	await _tip_jar()
 	_press(app.screen, "Restore")
 	await _wait(0.2)
 	t.ok((_find(app.screen, "Status") as Label).text.contains("Restored"), "Restore reports back")
 	app.handle_back()
 	await _wait(0.6)
+
+
+## The tip jar: presets, and a − / + / slider picker showing local prices.
+func _tip_jar() -> void:
+	_press(app.screen, "TipJar")
+	await _wait(0.5)
+	var o: Overlay = app.top_overlay()
+	t.ok(o is TipCard, "the tip jar opens")
+	t.ok(_find(o, "TipAmount") == null, "no typed rupee amount")
+	t.ok(_find(o, "RefundNote") != null, "the tip jar says purchases can't be refunded")
+	var price: Label = _find(o, "TipPrice") as Label
+	var slider: HSlider = _find(o, "TipSlider") as HSlider
+	var tip: Button = _find(o, "TipCustom") as Button
+	t.eq(price.text, Store.price("tip_500"), "the picker starts at the 500 tip, in local money")
+	t.eq(tip.text, "Tip " + Store.price("tip_500"), "the big button shows the local price")
+	t.eq(int(slider.max_value), Store.tip_amounts().size() - 1, "the slider covers every tip")
+	_press(o, "TipPlus")
+	t.eq(price.text, Store.price("tip_510"), "+ steps to the next tip")
+	_press(o, "TipMinus")
+	_press(o, "TipMinus")
+	t.eq(price.text, Store.price("tip_490"), "− steps back")
+	slider.value = slider.max_value
+	t.eq(tip.text, "Tip " + Store.price("tip_%d" % Store.TIP_MAX), "the slider reaches the largest tip")
+	slider.value = 0
+	t.eq(price.text, Store.price("tip_%d" % Store.TIP_MIN), "and the smallest")
+	_press(o, "TipMinus")
+	t.eq(price.text, Store.price("tip_%d" % Store.TIP_MIN), "− stops at the smallest")
+	Store.prices["tip_10"] = "US$0.12"
+	Store.price_updated.emit("tip_10", "US$0.12")
+	t.eq(price.text, "US$0.12", "Google Play's price replaces the fallback live")
+	Store.prices["tip_10"] = Store.tip_price(10)
+	var before: int = Profile.tips_given()
+	_press(o, "TipCustom")
+	await _wait(0.2)
+	t.eq(Profile.tips_given(), before + 1, "tipping from the picker")
+	_press(o, "Tip_50")
+	await _wait(0.2)
+	t.eq(Profile.tips_given(), before + 2, "tipping a preset")
+	app.close_overlays()
+	await _wait(0.3)
 
 
 func _settings() -> void:

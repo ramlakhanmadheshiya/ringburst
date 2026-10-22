@@ -69,6 +69,16 @@ static func label(text: String, size: int = Style.SIZE_BODY, color: Color = Styl
 	return l
 
 
+## The "no refunds" line under every buy button: small, muted, centred, wrapped.
+const REFUND_NOTE: String = "Purchases are made through Google Play. Sorry, we can't refund or undo a purchase."
+
+
+static func refund_note() -> Label:
+	var l: Label = para(REFUND_NOTE, Style.SIZE_CAPTION, Style.MUTED)
+	l.name = "RefundNote"
+	return l
+
+
 ## Wrapping paragraph text.
 static func para(text: String, size: int = Style.SIZE_SMALL, color: Color = Style.MUTED, align: HorizontalAlignment = HORIZONTAL_ALIGNMENT_CENTER) -> Label:
 	var l: Label = label(text, size, color, 400, align)
@@ -336,12 +346,27 @@ static func slider_row(text: String, icon_name: String, value: float, on_change:
 	var l: Label = label(text, Style.SIZE_BODY, Style.INK, 500, HORIZONTAL_ALIGNMENT_LEFT)
 	l.custom_minimum_size = Vector2(110, 0)
 	row.add_child(l)
-	var s: HSlider = HSlider.new()
+	var s: HSlider = slider(accent)
 	s.name = text.replace(" ", "") + "Slider"
 	s.min_value = 0.0
 	s.max_value = 1.0
 	s.step = 0.05
 	s.value = value
+	var pct: Label = label("%d%%" % int(round(value * 100)), Style.SIZE_SMALL, Style.MUTED, 600, HORIZONTAL_ALIGNMENT_RIGHT)
+	pct.custom_minimum_size = Vector2(70, 0)
+	s.value_changed.connect(func(v: float) -> void:
+		pct.text = "%d%%" % int(round(v * 100))
+		on_change.call(v)
+		Audio.play("tap", 1.0 + v * 0.5, -8.0)
+	)
+	row.add_child(s)
+	row.add_child(pct)
+	return row
+
+
+## A themed horizontal slider (track, accent fill and round knob).
+static func slider(accent: Color = Style.AMBER) -> HSlider:
+	var s: HSlider = HSlider.new()
 	s.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	s.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	s.custom_minimum_size = Vector2(0, 48)
@@ -354,16 +379,7 @@ static func slider_row(text: String, icon_name: String, value: float, on_change:
 	s.add_theme_icon_override("grabber", _knob(false, accent))
 	s.add_theme_icon_override("grabber_highlight", _knob(true, accent))
 	s.add_theme_icon_override("grabber_disabled", _knob(false, accent))
-	var pct: Label = label("%d%%" % int(round(value * 100)), Style.SIZE_SMALL, Style.MUTED, 600, HORIZONTAL_ALIGNMENT_RIGHT)
-	pct.custom_minimum_size = Vector2(70, 0)
-	s.value_changed.connect(func(v: float) -> void:
-		pct.text = "%d%%" % int(round(v * 100))
-		on_change.call(v)
-		Audio.play("tap", 1.0 + v * 0.5, -8.0)
-	)
-	row.add_child(s)
-	row.add_child(pct)
-	return row
+	return s
 
 
 static var _knobs: Dictionary = {}

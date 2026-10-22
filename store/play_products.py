@@ -11,7 +11,10 @@ account with permission to manage the app's products). It needs:
   python3 -m pip install google-auth requests
 Products that already exist are skipped, so it is safe to run again.
 
-Prices are set in Indian rupees; Play converts them for other countries.
+Prices are set in Indian rupees; Play converts them for other countries, and the
+game always shows Play's local price (so titles never name a currency).
+Tips: tip_10 ... tip_1000 in steps of 10, then tip_1100 ... tip_10000 in steps of
+100 (190 products).
 The product IDs must match game/autoload/store.gd.
 """
 import csv
@@ -29,17 +32,24 @@ PACKS = [
     ("style_pack", "Ring styles", "Six new looks for your ring and its waves.", 149),
 ]
 
-TIP_MIN, TIP_MAX, TIP_STEP = 10, 1000, 10
+TIP_MIN, TIP_MAX, TIP_STEP = 10, 10000, 10
+TIP_BIG_FROM, TIP_BIG_STEP = 1000, 100
+
+
+def tip_amounts():
+    """Every tip amount in rupees, as in Store.tip_amounts()."""
+    return list(range(TIP_MIN, TIP_BIG_FROM + 1, TIP_STEP)) + \
+        list(range(TIP_BIG_FROM + TIP_BIG_STEP, TIP_MAX + 1, TIP_BIG_STEP))
 
 
 def products():
     out = []
     for pid, title, desc, price in PACKS:
         out.append({"id": pid, "title": title, "description": desc, "price": price, "kind": "pack"})
-    for r in range(TIP_MIN, TIP_MAX + 1, TIP_STEP):
+    for r in tip_amounts():
         out.append({
             "id": f"tip_{r}",
-            "title": f"Tip ₹{r}",
+            "title": "Tip jar",
             "description": "A thank-you to the developer. Opens nothing new.",
             "price": r,
             "kind": "consumable",

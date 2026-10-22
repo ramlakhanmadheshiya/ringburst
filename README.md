@@ -38,7 +38,9 @@ Made with Godot 4.7.2 (GDScript, Compatibility renderer, so it also runs on the 
   | Supporter pack | No banner ads; revive without watching a video |
   | Theme pack | 11 colour themes (9 dark, 2 light) for the whole app and the arena (1-hour trial from a video) |
   | Ring styles | 6 looks for the ring and waves: Neon, Plasma, Prism, Aurora, Ember, Ghost (1-hour trial from a video) |
-  | Tip jar | Say thanks (₹10–₹1,000); unlocks nothing |
+  | Tip jar | Say thanks (190 amounts, ₹10–₹10,000 in Play's rupee prices); four quick amounts, or pick any with − / + and a slider. Every price is shown in the player's own currency; unlocks nothing |
+
+  Prices always come from `Store.price(id)`: Google Play's localised price once it answers, otherwise a regional guess from the device locale (only India's shows ₹). The shop, every pack card and the tip jar carry a small line: "Purchases are made through Google Play. Sorry, we can't refund or undo a purchase."
 
   Product ids and Play Console setup: [`store/PLAY_PRODUCTS.md`](store/PLAY_PRODUCTS.md). Debug desktop builds simulate purchases; the web build explains that purchases are in the Android app.
 - **Ads (Android only, no interstitials):**
