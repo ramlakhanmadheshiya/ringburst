@@ -14,7 +14,7 @@ func build() -> void:
 	var wd: Dictionary = Worlds.world(world)
 	Audio.world_music(world)
 	body.add_child(header(str(wd["name"]), "World %d" % (world + 1)))
-	body.add_child(chip_row([UIKit.coin_chip()]))
+	body.add_child(UIKit.gap(6))
 	var scroll: TouchScroll = TouchScroll.new()
 	scroll.name = "Scroll"
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL

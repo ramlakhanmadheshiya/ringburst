@@ -67,8 +67,8 @@ static func apply() -> void:
 	if t == "worlds":
 		_set_palette(Color("141A3C"), Color("070A1A"), Color("3DF5FF"), true, Color("F2F4FF"))
 		Style.CARD = Color("1A2050")
-		Style.SURFACE = Color("242B66")
-		Style.PANEL = Color("171C47")
+		Style.SURFACE = Color(1, 1, 1, 0.07)
+		Style.PANEL = Color(1, 1, 1, 0.05)
 		Style.LIP = Color("0A0D26")
 		Style.SHADOW_TILE = Color("10143A")
 		Style.MUTED = Color("A9B0E0")
@@ -89,8 +89,8 @@ static func _set_palette(top: Color, bottom: Color, accent: Color, dark: bool, i
 		var mid: Color = top.lerp(bottom, 0.4)
 		Style.MUTED = ink.lerp(top, 0.3)
 		Style.CARD = mid.lightened(0.07)
-		Style.SURFACE = mid.lightened(0.14)
-		Style.PANEL = mid.lightened(0.04)
+		Style.SURFACE = Color(1, 1, 1, 0.07)
+		Style.PANEL = Color(1, 1, 1, 0.05)
 		Style.LIP = bottom.darkened(0.5)
 		Style.SHADOW_TILE = bottom.lightened(0.04)
 		Style.FIELD = Color(ink, 0.07)
@@ -99,8 +99,8 @@ static func _set_palette(top: Color, bottom: Color, accent: Color, dark: bool, i
 	else:
 		Style.MUTED = ink.lerp(top, 0.42)
 		Style.CARD = top.lerp(Color.WHITE, 0.55)
-		Style.SURFACE = Color.WHITE
-		Style.PANEL = top.lerp(Color.WHITE, 0.4)
+		Style.SURFACE = Color(1, 1, 1, 0.6)
+		Style.PANEL = Color(1, 1, 1, 0.45)
 		Style.LIP = bottom.darkened(0.22)
 		Style.SHADOW_TILE = bottom.darkened(0.25)
 		Style.FIELD = Color(ink, 0.07)

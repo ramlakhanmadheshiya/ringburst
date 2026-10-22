@@ -12,11 +12,11 @@ static var CARD: Color = Color("1A2050")
 static var CARD_EDGE: Color = Color(1, 1, 1, 0.10)
 static var FIELD: Color = Color(1, 1, 1, 0.07)
 ## Raised surfaces: soft buttons, shop rows, chips.
-static var SURFACE: Color = Color("242B66")
+static var SURFACE: Color = Color(1, 1, 1, 0.07)
 ## The darker edge under raised surfaces.
 static var LIP: Color = Color("0A0D26")
 ## Flat panels: the HUD strip, the daily card.
-static var PANEL: Color = Color("171C47")
+static var PANEL: Color = Color(1, 1, 1, 0.05)
 static var SHADOW_TILE: Color = Color("10143A")
 ## The accent (named AMBER for history: it is the theme's highlight colour).
 static var AMBER: Color = Color("3DF5FF")
@@ -37,9 +37,9 @@ const SUCCESS: Color = Color("4FD18B")
 
 ## Every round icon button in a top bar (Back, Settings, Shop) is this size on
 ## every screen, so they never change size between pages.
-const TOP_BUTTON: float = 84.0
+const TOP_BUTTON: float = 76.0
 ## Every card's close (X) button is this size.
-const CLOSE_BUTTON: float = 72.0
+const CLOSE_BUTTON: float = 68.0
 
 const GUTTER: int = 24
 const MAX_WIDTH: int = 720

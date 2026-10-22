@@ -1,7 +1,8 @@
 extends Screen
-## Title screen: Shop, coins and Settings along the top; the name; a live
-## demo arena where the bot plays; one centred column with Play (and where it
-## continues), Worlds, Forge, Endless and Awards; and today's Daily Run.
+## Title screen, laid out like Single Shot's: Shop, coins and Settings along
+## the top; the name; a live demo arena where the bot plays; one Play button
+## with where it continues; a quiet row of round buttons (Worlds, Forge,
+## Endless, Awards); and today's Daily Run as one slim row.
 
 var _daily_status: Label
 var _daily_btn: Button
@@ -10,10 +11,10 @@ var _demo: ArenaView
 
 func build() -> void:
 	Audio.music("menu")
-	body.add_theme_constant_override("separation", 14)
+	body.add_theme_constant_override("separation", 0)
 	var top: HBoxContainer = UIKit.hbox(12, BoxContainer.ALIGNMENT_BEGIN)
-	top.custom_minimum_size.y = 92
-	var shop: Button = UIKit.icon_button("art:bag", Style.TOP_BUTTON)
+	top.custom_minimum_size.y = 84
+	var shop: Button = UIKit.icon_button("shopping-bag")
 	shop.name = "Shop"
 	shop.pressed.connect(func() -> void: app.go("shop"))
 	top.add_child(shop)
@@ -23,28 +24,28 @@ func build() -> void:
 	var coins: CounterChip = UIKit.coin_chip()
 	coins.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	top.add_child(coins)
-	var settings: Button = UIKit.icon_button("settings", Style.TOP_BUTTON)
+	var settings: Button = UIKit.icon_button("settings")
 	settings.name = "SettingsButton"
 	settings.pressed.connect(func() -> void: app.open_settings())
 	top.add_child(settings)
 	body.add_child(top)
+	body.add_child(UIKit.gap(18))
 
-	var title_box: VBoxContainer = UIKit.vbox(0)
-	var title: Label = UIKit.label("RINGBURST", 84, Style.INK, 800)
+	var title: Label = UIKit.label("Ringburst", 88, Style.INK, 500)
 	title.name = "Title"
-	title.add_theme_color_override("font_shadow_color", Color(Style.AMBER, 0.45 if Style.DARK else 0.25))
+	title.add_theme_color_override("font_shadow_color", Color(Style.AMBER, 0.28 if Style.DARK else 0.0))
 	title.add_theme_constant_override("shadow_offset_y", 0)
-	title.add_theme_constant_override("shadow_outline_size", 22)
-	title_box.add_child(title)
-	title_box.add_child(UIKit.caption("One touch · hold · release · burst", Style.AMBER))
-	body.add_child(title_box)
+	title.add_theme_constant_override("shadow_outline_size", 18)
+	body.add_child(title)
+	body.add_child(UIKit.caption("One touch · hold · release", Style.AMBER, 18))
+	body.add_child(UIKit.gap(26))
 
 	# A live arena where the bot plays: the game, before you've touched it.
 	var frame: PanelContainer = PanelContainer.new()
 	frame.name = "Demo"
-	frame.add_theme_stylebox_override("panel", UIKit.box(Color(0, 0, 0, 0.0), 34, Color(Style.AMBER, 0.35), 2, Vector2(4, 4)))
+	frame.add_theme_stylebox_override("panel", UIKit.box(Color(Style.INK, 0.035), 44, Color.TRANSPARENT, 0, Vector2(0, 0)))
 	frame.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	frame.custom_minimum_size = Vector2(0, 250)
+	frame.custom_minimum_size = Vector2(0, 240)
 	_demo = ArenaView.new()
 	_demo.demo = true
 	_demo.clip_contents = true
@@ -65,42 +66,43 @@ func build() -> void:
 		if e is InputEventMouseButton and e.pressed and (e as InputEventMouseButton).button_index == MOUSE_BUTTON_LEFT:
 			_play()
 	)
+	body.add_child(UIKit.gap(28))
 
-	# One centred column for every action, all the same width.
-	var column: VBoxContainer = UIKit.vbox(14)
-	column.custom_minimum_size.x = 580
-	column.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	# One main action, and where it continues.
 	var next: Array[int] = Profile.next_stage()
 	var all_done: bool = Profile.all_cleared()
-	var play: Button = UIKit.button("Play", "primary", Style.AMBER, 112, 40, "play")
+	var play: Button = UIKit.button("Play", "primary", Style.AMBER, 96, 34, "play")
 	play.name = "Play"
+	play.custom_minimum_size.x = 340
+	play.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	play.pressed.connect(_play)
-	column.add_child(play)
+	body.add_child(play)
 	var pulse: Tween = create_tween().set_loops()
 	pulse.tween_property(play, "scale", Vector2(1.03, 1.03), 0.9).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	pulse.tween_property(play, "scale", Vector2.ONE, 0.9).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	play.resized.connect(func() -> void: play.pivot_offset = play.size / 2)
 	play.button_down.connect(func() -> void: pulse.kill())
-	var where: Label = UIKit.label("Every world cleared · try Endless" if all_done else "%s · Stage %d" % [Worlds.world(next[0])["name"], next[1] + 1], Style.SIZE_SMALL + 1, Style.MUTED, 600)
+	body.add_child(UIKit.gap(12))
+	var where: Label = UIKit.label("Every world cleared · try Endless" if all_done else "%s · Stage %d" % [Worlds.world(next[0])["name"], next[1] + 1], Style.SIZE_CAPTION + 1, Style.MUTED, 600)
 	where.name = "NextStage"
-	column.add_child(where)
-	var row: HBoxContainer = UIKit.hbox(14)
-	row.add_child(_wide("Worlds", "layout-grid", func() -> void: app.go("worlds")))
-	row.add_child(_wide("Forge", "art:hammer", func() -> void: app.go("forge")))
-	column.add_child(row)
-	var row2: HBoxContainer = UIKit.hbox(14)
-	var endless: Button = _wide("Endless", "art:infinity" if Profile.endless_unlocked() else "lock", func() -> void:
+	body.add_child(where)
+	body.add_child(UIKit.gap(26))
+
+	# Everything else: round buttons with small captions, like Single Shot's result card.
+	var row: HBoxContainer = UIKit.hbox(30)
+	row.add_child(_round("Worlds", "layout-grid", func() -> void: app.go("worlds")))
+	row.add_child(_round("Forge", "hammer", func() -> void: app.go("forge")))
+	row.add_child(_round("Endless", "infinity" if Profile.endless_unlocked() else "lock", func() -> void:
 		if Profile.endless_unlocked():
 			app.go("play", {"mode": "endless"})
 		else:
 			Audio.play("error", 1.2, -8.0)
 			app.toast("Clear Neon Shore stage 3 to open Endless", "lock", Style.AMBER)
-	)
-	row2.add_child(endless)
-	row2.add_child(_wide("Awards", "art:trophy", func() -> void: app.open(AchievementsCard.new())))
-	column.add_child(row2)
-	column.add_child(_daily_card())
-	body.add_child(column)
+	))
+	row.add_child(_round("Awards", "trophy", func() -> void: app.open(AchievementsCard.new())))
+	body.add_child(row)
+	body.add_child(UIKit.gap(22))
+	body.add_child(_daily_row())
 
 	var timer: Timer = Timer.new()
 	timer.wait_time = 1.0
@@ -110,12 +112,14 @@ func build() -> void:
 	_update_daily()
 
 
-func _wide(text: String, icon: String, cb: Callable) -> Button:
-	var b: Button = UIKit.button(text, "soft", Style.AMBER, 84, 26, icon)
+func _round(text: String, icon: String, cb: Callable) -> VBoxContainer:
+	var box: VBoxContainer = UIKit.vbox(8)
+	var b: Button = UIKit.icon_button(icon, 80)
 	b.name = text
-	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	b.pressed.connect(cb)
-	return b
+	box.add_child(b)
+	box.add_child(UIKit.caption(text, Style.MUTED, 15))
+	return box
 
 
 func _play() -> void:
@@ -126,21 +130,13 @@ func _play() -> void:
 	app.open(StageCard.make(next[0], next[1]))
 
 
-func _daily_card() -> PanelContainer:
-	var row: HBoxContainer = UIKit.hbox(16, BoxContainer.ALIGNMENT_BEGIN)
-	row.add_child(UIKit.art_rect("calendar", 60))
-	var mid: VBoxContainer = UIKit.vbox(2)
-	mid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var mod: String = str(Worlds.daily_spec(Profile.today_key())["modifier"])
-	mid.add_child(UIKit.label("Daily Run · %s" % Worlds.MODIFIERS[mod]["name"], Style.SIZE_BODY - 2, Style.INK, 700, HORIZONTAL_ALIGNMENT_LEFT))
-	_daily_status = UIKit.label("", Style.SIZE_CAPTION + 1, Style.MUTED, 500, HORIZONTAL_ALIGNMENT_LEFT)
-	_daily_status.name = "DailyStatus"
-	_daily_status.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	mid.add_child(_daily_status)
-	row.add_child(mid)
-	_daily_btn = UIKit.button("Play", "primary", Style.PINK, 72, 26)
+## Today's Daily Run as one quiet pill: the calendar, its modifier, and the
+## streak or countdown. Tapping it opens the Daily card.
+func _daily_row() -> Button:
+	_daily_btn = UIKit.button("", "soft", Style.AMBER, 84, 22)
 	_daily_btn.name = "Daily"
-	_daily_btn.custom_minimum_size.x = 140
+	_daily_btn.custom_minimum_size.x = 520
+	_daily_btn.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	_daily_btn.pressed.connect(func() -> void:
 		if not Profile.daily_unlocked():
 			Audio.play("error", 1.2, -8.0)
@@ -148,29 +144,41 @@ func _daily_card() -> PanelContainer:
 			return
 		app.open(DailyCard.new())
 	)
-	row.add_child(_daily_btn)
-	var p: PanelContainer = PanelContainer.new()
-	p.add_theme_stylebox_override("panel", UIKit.lip_box(Style.PANEL, 30, Style.LIP, 6, Vector2(20, 14)))
-	p.add_child(row)
-	return p
+	var row: HBoxContainer = UIKit.hbox(14, BoxContainer.ALIGNMENT_BEGIN)
+	row.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	row.offset_left = 26
+	row.offset_right = -22
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_daily_btn.add_child(row)
+	row.add_child(UIKit.icon_rect("calendar", 34, Style.PINK))
+	var mid: VBoxContainer = UIKit.vbox(0)
+	mid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	mid.alignment = BoxContainer.ALIGNMENT_CENTER
+	mid.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var mod: String = str(Worlds.daily_spec(Profile.today_key())["modifier"])
+	mid.add_child(UIKit.label("Daily Run · %s" % Worlds.MODIFIERS[mod]["name"], Style.SIZE_SMALL + 1, Style.INK, 600, HORIZONTAL_ALIGNMENT_LEFT))
+	_daily_status = UIKit.label("", Style.SIZE_CAPTION - 1, Style.MUTED, 500, HORIZONTAL_ALIGNMENT_LEFT)
+	_daily_status.name = "DailyStatus"
+	_daily_status.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	mid.add_child(_daily_status)
+	row.add_child(mid)
+	row.add_child(UIKit.icon_rect("chevron-right", 28, Style.MUTED))
+	return _daily_btn
 
 
 func _update_daily() -> void:
 	var today: String = Profile.today_key()
 	if not Profile.daily_unlocked():
 		_daily_status.text = "Clear your first stage to unlock"
-		_daily_btn.text = "Play"
 		return
 	var streak: int = Profile.current_streak()
 	var streak_text: String = "%d-day streak" % streak if streak > 0 else "Start a streak"
 	if Profile.daily_done(today):
 		var now: Dictionary = Time.get_time_dict_from_system()
 		var left: int = 86400 - (int(now["hour"]) * 3600 + int(now["minute"]) * 60 + int(now["second"]))
-		_daily_status.text = "Best %d · %s · next in %dh %02dm" % [Profile.daily_best(today), streak_text, left / 3600, (left % 3600) / 60]
-		_daily_btn.text = "Replay"
+		_daily_status.text = "Done · best %d · new run in %dh %02dm" % [Profile.daily_best(today), left / 3600, (left % 3600) / 60]
 	else:
 		_daily_status.text = "%s · +%d coins" % [streak_text, Economy.daily_reward(streak + 1)]
-		_daily_btn.text = "Play"
 
 
 func refresh() -> void:

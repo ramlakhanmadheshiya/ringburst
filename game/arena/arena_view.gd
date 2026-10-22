@@ -382,7 +382,9 @@ func _draw() -> void:
 	var lift: float = _pulse * (0.10 if not _light else 0.05)
 	var t2: Color = top.lightened(lift)
 	var b2: Color = bottom.lightened(lift)
-	draw_polygon(PackedVector2Array([Vector2.ZERO, Vector2(size.x, 0), size, Vector2(0, size.y)]), PackedColorArray([t2, t2, b2, b2]))
+	# The home demo sits on the screen's own sky, inside a soft rounded panel.
+	if not demo:
+		draw_polygon(PackedVector2Array([Vector2.ZERO, Vector2(size.x, 0), size, Vector2(0, size.y)]), PackedColorArray([t2, t2, b2, b2]))
 	if sim == null:
 		return
 	_apply_view(self)
@@ -616,7 +618,7 @@ func _draw_glow(ci: CanvasItem) -> void:
 
 ## Text and flashes on top of everything.
 func _draw_top(ci: CanvasItem) -> void:
-	if _flash.a > 0.0:
+	if _flash.a > 0.0 and not demo:
 		ci.draw_rect(Rect2(Vector2.ZERO, size), _flash)
 	if sim == null:
 		return

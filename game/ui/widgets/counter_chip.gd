@@ -14,18 +14,15 @@ func _init() -> void:
 	name = "Coins"
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	add_theme_stylebox_override("panel", UIKit.lip_box(Style.PANEL, 30, Style.LIP, 5, Vector2(12, 6)))
-	var row: HBoxContainer = UIKit.hbox(10)
+	add_theme_stylebox_override("panel", UIKit.box(Color(Style.INK, 0.07), 32, Color.TRANSPARENT, 0, Vector2(14, 10)))
+	var row: HBoxContainer = UIKit.hbox(8)
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(row)
-	row.add_child(UIKit.art_rect("coin", 40))
-	_label = UIKit.label("0", 28, Style.INK, 700)
-	_label.custom_minimum_size.x = 64
+	row.add_child(UIKit.art_rect("coin", 34))
+	_label = UIKit.label("0", 25, Style.INK, 600)
+	_label.custom_minimum_size.x = 56
 	row.add_child(_label)
-	var plus: PanelContainer = UIKit.panel(UIKit.icon_rect("plus", 18, Style.PAPER_INK), Style.SUCCESS, 14, Vector2(5, 5))
-	plus.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	plus.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	row.add_child(plus)
+	row.add_child(UIKit.icon_rect("plus", 20, Style.MUTED))
 
 
 func _ready() -> void:

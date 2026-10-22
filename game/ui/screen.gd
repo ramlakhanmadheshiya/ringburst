@@ -79,7 +79,7 @@ func _fit() -> void:
 func header(title: String, caption: String = "", on_back_pressed: Callable = Callable()) -> HBoxContainer:
 	var bar: HBoxContainer = UIKit.hbox(12, BoxContainer.ALIGNMENT_BEGIN)
 	bar.name = "Header"
-	bar.custom_minimum_size.y = 92
+	bar.custom_minimum_size.y = 84
 	var back: Button = UIKit.icon_button("chevron-left", Style.TOP_BUTTON)
 	back.name = "Back"
 	back.pressed.connect(on_back_pressed if on_back_pressed.is_valid() else func() -> void: app.back())
@@ -88,8 +88,8 @@ func header(title: String, caption: String = "", on_back_pressed: Callable = Cal
 	mid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	mid.alignment = BoxContainer.ALIGNMENT_CENTER
 	if not caption.is_empty():
-		mid.add_child(UIKit.caption(caption, accent()))
-	var t: Label = UIKit.label(title, Style.SIZE_H2, Style.INK, 600)
+		mid.add_child(UIKit.caption(caption, Style.MUTED, 16))
+	var t: Label = UIKit.label(title, Style.SIZE_H2 - 2, Style.INK, 600)
 	t.name = "Title"
 	t.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	mid.add_child(t)
@@ -101,9 +101,9 @@ func header(title: String, caption: String = "", on_back_pressed: Callable = Cal
 	return bar
 
 
-## A right-aligned row of chips (coins) under a header.
+## A centred row of chips (coins) under a header.
 func chip_row(chips: Array) -> HBoxContainer:
-	var row: HBoxContainer = UIKit.hbox(12, BoxContainer.ALIGNMENT_END)
+	var row: HBoxContainer = UIKit.hbox(12, BoxContainer.ALIGNMENT_CENTER)
 	row.name = "Chips"
 	for c: Control in chips:
 		row.add_child(c)

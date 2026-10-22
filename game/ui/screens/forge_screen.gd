@@ -82,7 +82,7 @@ func _badge(icon_name: String, tint: Color) -> PanelContainer:
 
 
 func _buy_button(cost: int, node_name: String, cb: Callable) -> Button:
-	var b: Button = UIKit.button(str(cost), "primary", Style.GOLD, 68, 24, "art:coin")
+	var b: Button = UIKit.button(str(cost), "soft", Style.AMBER, 64, 23, "art:coin")
 	b.name = node_name
 	b.custom_minimum_size.x = 150
 	b.disabled = Profile.coins() < cost

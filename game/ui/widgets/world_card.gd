@@ -31,10 +31,10 @@ func _draw() -> void:
 	var w: Dictionary = Worlds.world(world)
 	var pal: Dictionary = Look.arena(world)
 	var accent: Color = pal["accent"]
-	var bg: Color = (pal["top"] as Color).lerp(pal["bottom"], 0.3)
+	var bg: Color = (pal["top"] as Color).lerp(pal["bottom"], 0.3).lerp(accent, 0.06)
 	if not unlocked:
-		bg = bg.lerp(Style.LIP, 0.55)
-	draw_style_box(UIKit.box(bg, 34, Color(accent, 0.6 if unlocked else 0.15), 2), r)
+		bg = Color(Style.INK, 0.04)
+	draw_style_box(UIKit.box(bg, 36), r)
 	if has_focus():
 		draw_style_box(UIKit.box(Color.TRANSPARENT, 36, Color(Style.INK, 0.8), 3), r.grow(4))
 	var light: bool = bool(pal["light"])
@@ -43,29 +43,29 @@ func _draw() -> void:
 	var pad: float = 28.0
 	var cap: FontVariation = (UIKit.font(700) as FontVariation).duplicate()
 	cap.spacing_glyph = 3
-	draw_string(cap, Vector2(pad, 44), "WORLD %d" % (world + 1), HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color(accent, 0.95 if unlocked else 0.45))
-	draw_string(UIKit.font(700), Vector2(pad, 92), str(w["name"]), HORIZONTAL_ALIGNMENT_LEFT, size.x - 200, 40, ink)
+	draw_string(cap, Vector2(pad, 46), "WORLD %d" % (world + 1), HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(accent, 0.9) if unlocked else Color(Style.INK, 0.35))
+	draw_string(UIKit.font(600), Vector2(pad, 92), str(w["name"]), HORIZONTAL_ALIGNMENT_LEFT, size.x - 200, 38, ink)
 	var tag: String = str(w["tagline"]) if unlocked else lock_text
-	draw_string(UIKit.font(400), Vector2(pad, 126), tag, HORIZONTAL_ALIGNMENT_LEFT, size.x - 200, 21, muted)
+	draw_string(UIKit.font(400), Vector2(pad, 126), tag, HORIZONTAL_ALIGNMENT_LEFT, size.x - 200, 20, muted)
 	# The world's new shape, floating on the right.
 	var c: Vector2 = Vector2(size.x - 92.0, size.y * 0.5 + sin(_t * 1.6 + world) * 6.0)
 	var col: Color = (pal["enemies"] as Array)[world % 4]
 	var info: Dictionary = EnemyTypes.info(world)
 	if unlocked:
-		draw_arc(c, 62.0, 0.0, TAU, 64, Color(accent, 0.35), 3.0, true)
+		draw_circle(c, 58.0, Color(accent, 0.08))
 		Shapes.neon(self, c, 30.0, int(info["sides"]), _t * 0.7, col, light)
 	else:
-		Shapes.outline(self, c, 30.0, int(info["sides"]), 0.0, Color(Style.INK, 0.25), 3.0)
-		draw_texture_rect(UIKit.art("lock"), Rect2(c - Vector2(18, 18), Vector2(36, 36)), false, Color(1, 1, 1, 0.8))
+		draw_circle(c, 46.0, Color(Style.INK, 0.05))
+		draw_texture_rect(UIKit.icon("lock"), Rect2(c - Vector2(18, 18), Vector2(36, 36)), false, Color(Style.INK, 0.4))
 	var by: float = size.y - 34.0
 	if unlocked:
 		var bw: float = size.x - pad - 330.0
-		draw_style_box(UIKit.box(Color(ink, 0.15), 5, Color.TRANSPARENT, 0, Vector2.ZERO), Rect2(pad, by - 5, bw, 10))
+		draw_style_box(UIKit.box(Color(ink, 0.12), 3, Color.TRANSPARENT, 0, Vector2.ZERO), Rect2(pad, by - 3, bw, 6))
 		if clears > 0:
-			draw_style_box(UIKit.box(accent, 5, Color.TRANSPARENT, 0, Vector2.ZERO), Rect2(pad, by - 5, maxf(10.0, bw * clears / float(Worlds.STAGES_PER_WORLD)), 10))
-		var f: Font = UIKit.font(700)
-		draw_string(f, Vector2(pad + bw + 16, by + 8), "%d/%d" % [clears, Worlds.STAGES_PER_WORLD], HORIZONTAL_ALIGNMENT_LEFT, -1, 21, ink)
-		draw_texture_rect(UIKit.art("star"), Rect2(pad + bw + 70, by - 13, 26, 26), false)
-		draw_string(f, Vector2(pad + bw + 100, by + 8), "%d/18" % stars, HORIZONTAL_ALIGNMENT_LEFT, -1, 21, Style.GOLD if not light else Color("B07A00"))
+			draw_style_box(UIKit.box(accent, 3, Color.TRANSPARENT, 0, Vector2.ZERO), Rect2(pad, by - 3, maxf(6.0, bw * clears / float(Worlds.STAGES_PER_WORLD)), 6))
+		var f: Font = UIKit.font(600)
+		draw_string(f, Vector2(pad + bw + 16, by + 8), "%d/%d" % [clears, Worlds.STAGES_PER_WORLD], HORIZONTAL_ALIGNMENT_LEFT, -1, 20, muted)
+		draw_texture_rect(UIKit.art("star"), Rect2(pad + bw + 70, by - 12, 24, 24), false)
+		draw_string(f, Vector2(pad + bw + 100, by + 8), "%d/18" % stars, HORIZONTAL_ALIGNMENT_LEFT, -1, 20, muted)
 	else:
-		draw_string(UIKit.font(600), Vector2(pad, by + 7), "6 stages · boss: %s" % EnemyTypes.BOSSES[world]["name"], HORIZONTAL_ALIGNMENT_LEFT, -1, 20, Color(Style.INK, 0.45))
+		draw_string(UIKit.font(600), Vector2(pad, by + 7), "6 stages · boss: %s" % EnemyTypes.BOSSES[world]["name"], HORIZONTAL_ALIGNMENT_LEFT, -1, 19, Color(Style.INK, 0.35))

@@ -36,16 +36,16 @@ func _draw() -> void:
 	if stage < Worlds.STAGES_PER_WORLD - 1:
 		draw_line(Vector2(cx, cy + 44), Vector2(cx, size.y + cy - 44), Color(acc, 0.35 if unlocked else 0.12), 4.0, true)
 	var card: Rect2 = Rect2(Vector2(120, 10), Vector2(size.x - 124, size.y - 20))
-	draw_style_box(UIKit.box(Style.SURFACE if unlocked else Color(Style.SURFACE, 0.45), 28, Color(acc, 0.55) if current else Color.TRANSPARENT, 2 if current else 0), card)
+	draw_style_box(UIKit.box(Style.SURFACE if unlocked else Color(Style.INK, 0.03), 28, Color(acc, 0.5) if current else Color.TRANSPARENT, 2 if current else 0), card)
 	var r: float = 42.0 if boss else 36.0
 	if current:
 		draw_arc(Vector2(cx, cy), r + 8.0 + 3.0 * sin(_t * 4.0), 0.0, TAU, 48, Color(acc, 0.5), 3.0, true)
-	draw_circle(Vector2(cx, cy), r, acc if unlocked else Color(Style.INK, 0.12))
+	draw_circle(Vector2(cx, cy), r, acc if unlocked else Color(Style.INK, 0.07))
 	var f: Font = UIKit.font(800)
 	if boss:
 		draw_texture_rect(UIKit.art("skull"), Rect2(Vector2(cx, cy) - Vector2(26, 26), Vector2(52, 52)), false, Color(1, 1, 1, 1.0 if unlocked else 0.4))
 	elif not unlocked:
-		draw_texture_rect(UIKit.art("lock"), Rect2(Vector2(cx, cy) - Vector2(20, 20), Vector2(40, 40)), false, Color(1, 1, 1, 0.6))
+		draw_texture_rect(UIKit.icon("lock"), Rect2(Vector2(cx, cy) - Vector2(16, 16), Vector2(32, 32)), false, Color(Style.INK, 0.4))
 	else:
 		var num: String = str(stage + 1)
 		var w: float = f.get_string_size(num, HORIZONTAL_ALIGNMENT_LEFT, -1, 34).x

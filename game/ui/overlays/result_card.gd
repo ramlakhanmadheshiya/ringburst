@@ -1,9 +1,10 @@
 class_name ResultCard
 extends Overlay
-## The end of a run: the stars and their three goals (campaign), the score
-## and best combo, coins counting up with an optional "double with a video"
-## (asked for, never automatic), notes for a new best, a finished world or a
-## streak, then Next / Again / Share / Home, like Single Shot.
+## The end of a run, laid out like Single Shot's: the stars and which goals
+## were met (campaign), one big score with a single line of stats, one line of
+## good news (new best, new stars, what opened, streak), coins counting up
+## with an optional "double with a video" (asked for, never automatic), then
+## Next and a row of round actions.
 
 var play: Node
 var reward: Dictionary = {}
@@ -24,46 +25,39 @@ func build() -> void:
 	var won: bool = sim.state == RunSim.State.WON
 	var mode: String = play.mode
 	var acc: Color = play.accent()
-	body.add_child(UIKit.caption(play._where_text(), acc))
+	body.add_child(UIKit.caption(play._where_text(), acc, 16))
 	var title_text: String = "Stage clear!" if won else "Run over"
 	if mode == "daily":
 		title_text = "Daily run done" if won else "Daily run over"
 	elif mode == "endless":
 		title_text = "Lasted %s" % play.share_info()["time_text"]
-	var title: Label = UIKit.label(title_text, Style.SIZE_H1 + 6, Style.INK, 700)
+	var title: Label = UIKit.label(title_text, Style.SIZE_H1, Style.INK, 600)
 	title.name = "ResultTitle"
 	body.add_child(title)
 	if mode == "stage":
 		var mask: int = sim.stars_mask()
 		var row: StarRow = StarRow.new()
 		row.name = "Stars"
-		row.custom_minimum_size.y = 92
+		row.custom_minimum_size.y = 84
 		body.add_child(row)
 		row.play(mask)
-		var goals: VBoxContainer = UIKit.vbox(6)
-		goals.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-		goals.add_child(_goal(mask & 1 != 0, "Clear the stage"))
-		goals.add_child(_goal(mask & 2 != 0, "Take no hits"))
-		goals.add_child(_goal(mask & 4 != 0, "Reach a %d combo (best %d)" % [int(play.spec["combo_target"]), sim.best_combo]))
-		body.add_child(goals)
-	var stats: HBoxContainer = UIKit.hbox(8)
-	for s: Array in [["Score", play._thousands(sim.score)], ["Best combo", str(sim.best_combo)], ["Perfects", str(sim.perfects)], ["Shapes", str(sim.kills)]]:
-		var col: VBoxContainer = UIKit.vbox(0)
-		col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		var v: Label = UIKit.label(str(s[1]), Style.SIZE_H2 - 4, Style.INK, 800)
-		v.name = "Stat" + str(s[0]).replace(" ", "")
-		col.add_child(v)
-		col.add_child(UIKit.label(str(s[0]), Style.SIZE_CAPTION, Style.MUTED, 600))
-		stats.add_child(col)
-	body.add_child(UIKit.panel(stats, Style.FIELD, 26, Vector2(10, 12)))
-	if bool(reward.get("new_best", false)) and sim.score > 0:
-		body.add_child(_note("trophy", "New best score!" if mode != "stage" else "New best for this stage", Style.GOLD))
-	elif mode != "stage":
-		body.add_child(UIKit.label("Best: %s" % play._thousands(int(reward.get("best", 0))), Style.SIZE_SMALL, Style.MUTED, 600))
+		body.add_child(UIKit.label(_goals_text(mask), Style.SIZE_CAPTION, Style.MUTED, 500))
+	body.add_child(UIKit.gap(4))
+	var score: Label = UIKit.label(play._thousands(sim.score), 64, Style.INK, 700)
+	score.name = "StatScore"
+	body.add_child(score)
+	var line: String = "Best combo %d · %d perfects · %d shapes" % [sim.best_combo, sim.perfects, sim.kills]
+	body.add_child(UIKit.label(line, Style.SIZE_CAPTION, Style.MUTED, 500))
+	var notes: Array[String] = _notes(reward, mode, sim)
+	if not notes.is_empty():
+		var n: Label = UIKit.para(" · ".join(notes), Style.SIZE_SMALL - 1, Style.GOLD if Style.DARK else Color("A86A00"))
+		n.name = "Notes"
+		body.add_child(n)
+	body.add_child(UIKit.gap(2))
 	var coins: int = int(reward.get("coins", 0))
-	var coin_row: HBoxContainer = UIKit.hbox(12)
-	coin_row.add_child(UIKit.art_rect("coin", 52))
-	_amount = UIKit.label("+0", 40, Style.GOLD, 800)
+	var coin_row: HBoxContainer = UIKit.hbox(10)
+	coin_row.add_child(UIKit.art_rect("coin", 40))
+	_amount = UIKit.label("+0", 34, Style.INK, 700)
 	_amount.name = "Reward"
 	coin_row.add_child(_amount)
 	body.add_child(coin_row)
@@ -76,8 +70,10 @@ func build() -> void:
 	)
 	var run_coins: int = int(reward.get("run_coins", 0))
 	if run_coins > 0:
-		var dbl: Button = UIKit.button("Double %d coins · watch a video" % run_coins if not Profile.is_supporter() else "Double %d coins (Supporter)" % run_coins, "soft", Style.AMBER, 68, 21, "art:watch")
+		var dbl: Button = UIKit.button("Double coins · watch a video" if not Profile.is_supporter() else "Double coins", "ghost", Style.AMBER, 64, 21, "art:watch")
 		dbl.name = "Double"
+		dbl.custom_minimum_size.x = 400
+		dbl.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 		dbl.pressed.connect(func() -> void:
 			if _doubled:
 				return
@@ -103,28 +99,15 @@ func build() -> void:
 	_status.name = "Status"
 	_status.visible = false
 	body.add_child(_status)
-	if int(reward.get("new_stars", 0)) > 0 and not bool(reward.get("first", false)):
-		body.add_child(_note("star-filled", "%d new %s" % [int(reward["new_stars"]), "star" if int(reward["new_stars"]) == 1 else "stars"], Style.GOLD))
-	if bool(reward.get("world_done", false)):
-		body.add_child(_note("trophy", "World complete! +%d bonus coins" % Economy.WORLD_BONUS, Style.GOLD))
-	if not str(reward.get("unlocked", "")).is_empty():
-		var wk: Array[int] = Worlds.parse_stage_id(str(reward["unlocked"]))
-		var txt: String = "New world open: %s" % Worlds.world(wk[0])["name"] if wk[1] == 0 else "Stage %d is open" % (wk[1] + 1)
-		body.add_child(_note("lock", txt, Look.accent(wk[0])))
-	if mode == "daily" and bool(reward.get("first", false)):
-		body.add_child(_note("flame", "%d-day streak · a new Daily Run tomorrow" % int(reward.get("streak", 1)), Color("FF8A3D")))
 	if not won and mode == "stage":
 		body.add_child(UIKit.para(_tip(), Style.SIZE_CAPTION, Style.MUTED))
-	body.add_child(UIKit.gap(4))
+	body.add_child(UIKit.gap(8))
 	var next_text: String = "Home"
-	var next_icon: String = "house"
 	if mode == "stage":
 		next_text = "Next stage" if won else "Try again"
-		next_icon = "arrow-right" if won else "rotate-ccw"
 	elif mode == "endless":
 		next_text = "Play again"
-		next_icon = "rotate-ccw"
-	var next: Button = UIKit.button(next_text, "primary", acc, 92, 32, next_icon)
+	var next: Button = UIKit.button(next_text, "primary", acc, 88, 30)
 	next.name = "Next"
 	next.pressed.connect(func() -> void:
 		close()
@@ -134,23 +117,54 @@ func build() -> void:
 			play.go_next()
 	)
 	body.add_child(next)
-	var actions: HBoxContainer = UIKit.hbox(24)
+	body.add_child(UIKit.gap(4))
+	var actions: HBoxContainer = UIKit.hbox(26)
 	if mode == "stage" and won:
-		actions.add_child(_action("rotate-ccw", "AGAIN", "Again", func() -> void:
+		actions.add_child(_action("rotate-ccw", "Again", "Again", func() -> void:
 			close()
 			play.restart()))
 	if mode == "stage":
-		actions.add_child(_action("layout-grid", "STAGES", "Stages", func() -> void:
+		actions.add_child(_action("layout-grid", "Stages", "Stages", func() -> void:
 			close()
 			app.go("stages", {"world": play.world_idx})))
-	actions.add_child(_action("hammer", "FORGE", "Forge", func() -> void:
-		close()
-		app.go("forge")))
-	actions.add_child(_action("share-2", "SHARE", "Share", func() -> void: open_child(_share_card())))
-	actions.add_child(_action("house", "HOME", "Home", func() -> void:
-		close()
-		app.go("home")))
+	if not won or mode != "stage":
+		actions.add_child(_action("hammer", "Forge", "Forge", func() -> void:
+			close()
+			app.go("forge")))
+	actions.add_child(_action("share-2", "Share", "Share", func() -> void: open_child(_share_card())))
+	if mode != "stage" or won:
+		actions.add_child(_action("house", "Home", "Home", func() -> void:
+			close()
+			app.go("home")))
 	body.add_child(actions)
+
+
+## Which of the three star goals this run met, in one short line.
+func _goals_text(mask: int) -> String:
+	var parts: Array[String] = []
+	parts.append(("✓ " if mask & 1 != 0 else "") + "Clear")
+	parts.append(("✓ " if mask & 2 != 0 else "") + "No hits")
+	parts.append(("✓ " if mask & 4 != 0 else "") + "%d combo" % int(play.spec["combo_target"]))
+	return "   ".join(parts)
+
+
+## Good news from this run, short enough to share one line.
+func _notes(rw: Dictionary, mode: String, sim: RunSim) -> Array[String]:
+	var out: Array[String] = []
+	if bool(rw.get("new_best", false)) and sim.score > 0:
+		out.append("New best")
+	elif mode != "stage" and int(rw.get("best", 0)) > 0:
+		out.append("Best %s" % play._thousands(int(rw.get("best", 0))))
+	if int(rw.get("new_stars", 0)) > 0 and not bool(rw.get("first", false)):
+		out.append("%d new %s" % [int(rw["new_stars"]), "star" if int(rw["new_stars"]) == 1 else "stars"])
+	if bool(rw.get("world_done", false)):
+		out.append("World complete! +%d coins" % Economy.WORLD_BONUS)
+	if not str(rw.get("unlocked", "")).is_empty():
+		var wk: Array[int] = Worlds.parse_stage_id(str(rw["unlocked"]))
+		out.append("%s is open" % Worlds.world(wk[0])["name"] if wk[1] == 0 else "Stage %d is open" % (wk[1] + 1))
+	if mode == "daily" and bool(rw.get("first", false)):
+		out.append("%d-day streak" % int(rw.get("streak", 1)))
+	return out
 
 
 func _say(msg: String) -> void:
@@ -170,13 +184,6 @@ func _tip() -> String:
 	return tips[posmod(play.sim.ticks, tips.size())]
 
 
-func _goal(done: bool, text: String) -> HBoxContainer:
-	var row: HBoxContainer = UIKit.hbox(10, BoxContainer.ALIGNMENT_BEGIN)
-	row.add_child(UIKit.icon_rect("check" if done else "x", 26, Style.SUCCESS if done else Color(Style.INK, 0.35)))
-	row.add_child(UIKit.label(text, 22, Style.INK if done else Style.MUTED, 600, HORIZONTAL_ALIGNMENT_LEFT))
-	return row
-
-
 func _share_card() -> ShareCardOverlay:
 	var o: ShareCardOverlay = ShareCardOverlay.new()
 	o.info = play.share_info()
@@ -185,23 +192,13 @@ func _share_card() -> ShareCardOverlay:
 
 func _action(icon_name: String, caption: String, node_name: String, cb: Callable) -> VBoxContainer:
 	var box: VBoxContainer = UIKit.vbox(6)
-	var b: Button = UIKit.icon_button(icon_name, 76)
+	var b: Button = UIKit.icon_button(icon_name, 68)
 	b.name = node_name
 	b.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	b.pressed.connect(cb)
 	box.add_child(b)
-	box.add_child(UIKit.caption(caption, Style.MUTED, 15))
+	box.add_child(UIKit.caption(caption, Style.MUTED, 14))
 	return box
-
-
-func _note(icon_name: String, text: String, tint: Color) -> PanelContainer:
-	var row: HBoxContainer = UIKit.hbox(12)
-	row.add_child(UIKit.icon_rect(icon_name, 34, tint))
-	var l: Label = UIKit.label(text, Style.SIZE_SMALL, Style.INK, 600)
-	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	row.add_child(l)
-	return UIKit.panel(row, Color(tint, 0.14), 26, Vector2(20, 10))
 
 
 func on_back() -> void:

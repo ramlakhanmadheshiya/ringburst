@@ -102,11 +102,11 @@ static func box(fill: Color, radius: int = Style.RADIUS, border: Color = Color.T
 	return s
 
 
-static func card_style(radius: int = 40, pad: int = 36) -> StyleBoxFlat:
-	var s: StyleBoxFlat = box(Style.CARD, radius, Style.CARD_EDGE, 2, Vector2(pad, pad))
-	s.shadow_color = Color(0, 0, 0, 0.35)
-	s.shadow_size = 28
-	s.shadow_offset = Vector2(0, 10)
+static func card_style(radius: int = 44, pad: int = 40) -> StyleBoxFlat:
+	var s: StyleBoxFlat = box(Style.CARD, radius, Color.TRANSPARENT, 0, Vector2(pad, pad))
+	s.corner_detail = 12
+	s.shadow_color = Color(0, 0, 0, 0.28 if Style.DARK else 0.12)
+	s.shadow_size = 30
 	return s
 
 
@@ -141,35 +141,26 @@ static func art_rect(name: String, size: float) -> TextureRect:
 	return ic
 
 
-## A rounded box with a darker "lip" under it, so buttons look pressable.
-## Pressed boxes have a thinner lip and push their content down.
-static func lip_box(fill: Color, radius: int, lip_color: Color, lip: int, pad: Vector2, pressed: bool = false, outline: Color = Color.TRANSPARENT) -> StyleBoxFlat:
-	var s: StyleBoxFlat = box(fill, radius, Color.TRANSPARENT, 0, pad)
-	var l: int = maxi(1, lip / 3) if pressed else lip
+## A flat rounded box for anything pressable (Single Shot's quiet look: no
+## raised lip, no drop shadow). `lip_color`, `lip` and `pressed` are kept so
+## callers stay simple; pressed boxes are simply a touch darker.
+static func lip_box(fill: Color, radius: int, _lip_color: Color, _lip: int, pad: Vector2, pressed: bool = false, outline: Color = Color.TRANSPARENT) -> StyleBoxFlat:
+	var s: StyleBoxFlat = box(fill.darkened(0.04) if pressed else fill, radius, Color.TRANSPARENT, 0, pad)
 	if outline.a > 0.0:
 		s.border_color = outline
 		s.set_border_width_all(2)
-		s.border_width_bottom = l + 2
-	else:
-		s.border_color = lip_color
-		s.border_width_bottom = l
-	s.content_margin_top = pad.y + (lip - l)
-	s.content_margin_bottom = pad.y
-	s.shadow_color = Color(0, 0, 0, 0.22)
-	s.shadow_size = 0 if pressed else 6
-	s.shadow_offset = Vector2(0, 4)
 	return s
 
 
-## Rounded pill button with a pressable lip. style: "primary" (accent),
-## "soft" (translucent), "ghost" (outline), "danger". `icon_name` may be
+## Flat pill button. style: "primary" (accent), "soft" (translucent),
+## "ghost" (outline), "danger". `icon_name` may be
 ## "art:<name>" for full-colour art.
 static func button(text: String, style: String = "primary", accent: Color = Style.AMBER, height: int = 92, font_size: int = 30, icon_name: String = "") -> Button:
 	var b: Button = Button.new()
 	b.text = text
 	b.custom_minimum_size = Vector2(0, height)
 	b.focus_mode = Control.FOCUS_ALL
-	b.add_theme_font_override("font", font(700 if style == "primary" else 600))
+	b.add_theme_font_override("font", font(600))
 	b.add_theme_font_size_override("font_size", font_size)
 	var fill: Color
 	var text_c: Color
@@ -189,18 +180,18 @@ static func button(text: String, style: String = "primary", accent: Color = Styl
 			text_c = Style.INK
 			lip_c = Style.LIP
 		_:
-			fill = Color(Style.INK, 0.03)
+			fill = Color(Style.INK, 0.0)
 			text_c = Style.INK
 			lip_c = Color(Style.INK, 0.18)
-			outline = Color(Style.INK, 0.18)
-	var r: int = int(height * 0.36)
+			outline = Color(Style.INK, 0.2)
+	var r: int = height / 2
 	var lip: int = maxi(4, int(height * 0.07))
 	var pad: Vector2 = Vector2(28, 8)
 	b.add_theme_stylebox_override("normal", lip_box(fill, r, lip_c, lip, pad, false, outline))
-	b.add_theme_stylebox_override("hover", lip_box(fill.lightened(0.07), r, lip_c, lip, pad, false, outline))
+	b.add_theme_stylebox_override("hover", lip_box(fill.lightened(0.07) if style != "ghost" else Color(Style.INK, 0.05), r, lip_c, lip, pad, false, outline))
 	b.add_theme_stylebox_override("pressed", lip_box(fill.darkened(0.06), r, lip_c, lip, pad, true, outline))
 	b.add_theme_stylebox_override("hover_pressed", lip_box(fill.darkened(0.06), r, lip_c, lip, pad, true, outline))
-	b.add_theme_stylebox_override("disabled", lip_box(Style.PANEL.darkened(0.1), r, Style.LIP, lip, pad))
+	b.add_theme_stylebox_override("disabled", lip_box(Color(Style.INK, 0.05), r, Style.LIP, lip, pad))
 	var focus: StyleBoxFlat = box(Color.TRANSPARENT, r + 4, Color(Style.INK, 0.7), 3)
 	focus.set_expand_margin_all(5)
 	b.add_theme_stylebox_override("focus", focus)
@@ -218,9 +209,11 @@ static func button(text: String, style: String = "primary", accent: Color = Styl
 	return b
 
 
-## Round icon-only button with a pressable lip (44pt+ touch target).
+## Round icon-only button on a soft translucent disc (44pt+ touch target).
 ## `icon_name` may be "art:<name>" for full-colour art.
-static func icon_button(icon_name: String, size: float = 84.0, fill: Color = Style.SURFACE, tint: Color = Style.INK) -> Button:
+static func icon_button(icon_name: String, size: float = Style.TOP_BUTTON, fill: Color = Color.TRANSPARENT, tint: Color = Style.INK) -> Button:
+	if fill.a == 0.0:
+		fill = Color(Style.INK, 0.07)
 	var b: Button = Button.new()
 	var is_art: bool = icon_name.begins_with("art:")
 	b.icon = art(icon_name.substr(4)) if is_art else icon(icon_name)
@@ -231,15 +224,16 @@ static func icon_button(icon_name: String, size: float = 84.0, fill: Color = Sty
 	b.expand_icon = true
 	b.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	b.focus_mode = Control.FOCUS_ALL
-	var r: int = int(size * 0.36)
-	var lip: int = maxi(4, int(size * 0.07))
-	var pad: Vector2 = Vector2(size * (0.2 if is_art else 0.27), size * (0.2 if is_art else 0.25))
+	var r: int = int(size)
+	var lip: int = 0
+	var pad: Vector2 = Vector2.ONE * size * (0.24 if is_art else 0.29)
 	var lip_c: Color = Style.LIP
+	var more: Color = Color(Style.INK, fill.a + 0.06)
 	b.add_theme_stylebox_override("normal", lip_box(fill, r, lip_c, lip, pad))
-	b.add_theme_stylebox_override("hover", lip_box(fill.lightened(0.07), r, lip_c, lip, pad))
-	b.add_theme_stylebox_override("pressed", lip_box(fill.darkened(0.06), r, lip_c, lip, pad, true))
-	b.add_theme_stylebox_override("hover_pressed", lip_box(fill.darkened(0.06), r, lip_c, lip, pad, true))
-	b.add_theme_stylebox_override("disabled", lip_box(Style.PANEL.darkened(0.1), r, Style.LIP, lip, pad))
+	b.add_theme_stylebox_override("hover", lip_box(more, r, lip_c, lip, pad))
+	b.add_theme_stylebox_override("pressed", lip_box(Color(Style.INK, fill.a + 0.12), r, lip_c, lip, pad))
+	b.add_theme_stylebox_override("hover_pressed", lip_box(Color(Style.INK, fill.a + 0.12), r, lip_c, lip, pad))
+	b.add_theme_stylebox_override("disabled", lip_box(fill, r, Style.LIP, lip, pad))
 	var focus: StyleBoxFlat = box(Color.TRANSPARENT, r + 4, Color(Style.INK, 0.7), 3, pad)
 	focus.set_expand_margin_all(4)
 	b.add_theme_stylebox_override("focus", focus)

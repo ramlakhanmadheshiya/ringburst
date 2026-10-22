@@ -4,12 +4,12 @@ extends Screen
 
 func build() -> void:
 	body.add_child(header("Worlds", "★ %d / %d" % [Profile.total_stars(), Worlds.total_stages() * 3]))
-	body.add_child(chip_row([UIKit.coin_chip()]))
+	body.add_child(UIKit.gap(6))
 	var scroll: TouchScroll = TouchScroll.new()
 	scroll.name = "Scroll"
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	body.add_child(scroll)
-	var list: VBoxContainer = UIKit.vbox(18)
+	var list: VBoxContainer = UIKit.vbox(16)
 	list.name = "List"
 	scroll.set_content(list)
 	var focus_card: Control = null
@@ -47,6 +47,6 @@ func _scroll_to(scroll: TouchScroll, card: Control) -> void:
 	if card == null or not card.is_inside_tree():
 		return
 	if card.position.y + card.size.y + 24.0 > scroll.size.y:
-		var stride: float = card.size.y + 18.0
+		var stride: float = card.size.y + 16.0
 		var fit: int = maxi(2, int(scroll.size.y / stride))
 		scroll.scroll_to(card.position.y - (fit - 2) * stride)

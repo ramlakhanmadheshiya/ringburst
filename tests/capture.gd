@@ -223,8 +223,14 @@ func _run_scene(w: int, k: int, seconds: float, moment: String = "charge") -> vo
 	sim.cancel_charge()
 	sim.input_down()
 	var target: float = minf(sim.stats.max_r * 0.75, 260.0)
-	while sim.ring_r < target and not sim.is_over():
+	var frames: int = 0
+	while sim.ring_r < target and not sim.is_over() and frames < 600:
+		# A level-up pauses the ring; take the bot's pick and hold again.
+		if sim.state == RunSim.State.CHOOSING:
+			sim.choose(bot.pick(sim))
+			sim.input_down()
 		await get_tree().process_frame
+		frames += 1
 	play.arena.paused = true
 	await _wait(0.1)
 	app.close_overlays()
@@ -303,7 +309,11 @@ func _wait(s: float) -> void:
 
 
 func _shot(name: String) -> void:
-	await RenderingServer.frame_post_draw
+	if DisplayServer.window_can_draw():
+		await RenderingServer.frame_post_draw
+	else:
+		# A hidden window (screen locked or covered) skips drawing; draw anyway.
+		RenderingServer.force_draw(false)
 	var img: Image = get_viewport().get_texture().get_image()
 	_n += 1
 	if store:
